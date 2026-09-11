@@ -8,33 +8,25 @@ import { logger } from './utils/logger.js'
 import jwtPlugin from './plugins/jwt.js'
 import corsPlugin from './plugins/cors.js'
 
-// 路由
-import { authRoutes } from './routes/auth.js'
-import { orderRoutes } from './routes/orders.js'
-import { postRoutes } from './routes/posts.js'
-import { feedbackRoutes } from './routes/feedback.js'
-import { carouselRoutes } from './routes/carousel.js'
-import { adminOrderRoutes } from './routes/admin/orders.js'
-import { adminOrderTypeRoutes } from './routes/admin/order-types.js'
-import { adminActivityRoutes } from './routes/admin/activities.js'
-import { adminPostRoutes } from './routes/admin/posts.js'
-import { adminFeedbackRoutes } from './routes/admin/feedback.js'
-import { adminCarouselRoutes } from './routes/admin/carousel.js'
-import { adminUserRoutes } from './routes/admin/users.js'
-import { pointsRoutes } from './routes/points.js'
-import { adminPointsRoutes } from './routes/admin/points.js'
-import { adminSystemRoutes } from './routes/admin/system.js'
-import { productRoutes } from './routes/products.js'
-import { productOrderRoutes } from './routes/productOrders.js'
-import { promoCouponRoutes } from './routes/promoCoupons.js'
-import { adminNotificationRoutes } from './routes/adminNotifications.js'
-import { adminProductRoutes } from './routes/admin/products.js'
-import { adminProductOrderRoutes } from './routes/admin/productOrders.js'
-import { adminPromoCouponRoutes } from './routes/admin/promoCoupons.js'
-import { adminPaymentConfigRoutes } from './routes/admin/paymentConfig.js'
-import { luckyWheelRoutes } from './routes/luckyWheel.js'
-import { adminLuckyWheelRoutes } from './routes/admin/luckyWheel.js'
+// 模块路由（按业务域聚合，见 docs/refactor-plan.md）
+import { authRoutes } from './modules/system/system.routes.js'
+import { adminSystemRoutes } from './modules/system/system.admin.routes.js'
+import { orderRoutes } from './modules/order/order.routes.js'
+import { adminOrderRoutes } from './modules/order/order.admin.routes.js'
+import { pointsRoutes } from './modules/points/points.routes.js'
+import { adminPointsRoutes } from './modules/points/points.admin.routes.js'
+import { productRoutes } from './modules/product/product.routes.js'
+import { adminProductRoutes } from './modules/product/product.admin.routes.js'
+import { forumRoutes } from './modules/forum/forum.routes.js'
+import { adminForumRoutes } from './modules/forum/forum.admin.routes.js'
+import { contentRoutes } from './modules/content/content.routes.js'
+import { adminContentRoutes } from './modules/content/content.admin.routes.js'
+import { marketingRoutes } from './modules/marketing/marketing.routes.js'
+import { adminMarketingRoutes } from './modules/marketing/marketing.admin.routes.js'
+
 import { rateLimitQuery } from './middlewares/ratelimit.middleware.js'
+import { toHttpError } from './framework/errors.js'
+import { errorResponse } from './framework/response.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -65,36 +57,27 @@ export async function buildApp() {
     }
   })
 
-  // 路由注册
-  app.register(authRoutes, { prefix: '/api' })
-  app.register(orderRoutes, { prefix: '/api' })
-  app.register(postRoutes, { prefix: '/api' })
-  app.register(feedbackRoutes, { prefix: '/api' })
-  app.register(carouselRoutes, { prefix: '/api' })
-  app.register(adminOrderRoutes, { prefix: '/api' })
-  app.register(adminOrderTypeRoutes, { prefix: '/api' })
-  app.register(adminActivityRoutes, { prefix: '/api' })
-  app.register(adminPostRoutes, { prefix: '/api' })
-  app.register(adminFeedbackRoutes, { prefix: '/api' })
-  app.register(adminCarouselRoutes, { prefix: '/api' })
-  app.register(adminUserRoutes, { prefix: '/api' })
-  app.register(pointsRoutes, { prefix: '/api' })
-  app.register(adminPointsRoutes, { prefix: '/api' })
-  app.register(adminSystemRoutes, { prefix: '/api' })
-  app.register(productRoutes, { prefix: '/api' })
-  app.register(productOrderRoutes, { prefix: '/api' })
-  app.register(promoCouponRoutes, { prefix: '/api' })
-  app.register(adminNotificationRoutes, { prefix: '/api' })
-  app.register(adminProductRoutes, { prefix: '/api' })
-  app.register(adminProductOrderRoutes, { prefix: '/api' })
-  app.register(adminPromoCouponRoutes, { prefix: '/api' })
-  app.register(adminPaymentConfigRoutes, { prefix: '/api' })
-  app.register(luckyWheelRoutes, { prefix: '/api' })
-  app.register(adminLuckyWheelRoutes, { prefix: '/api' })
+  // 模块路由注册（统一 /api 前缀）
+  const modules = [
+    authRoutes, adminSystemRoutes,
+    orderRoutes, adminOrderRoutes,
+    pointsRoutes, adminPointsRoutes,
+    productRoutes, adminProductRoutes,
+    forumRoutes, adminForumRoutes,
+    contentRoutes, adminContentRoutes,
+    marketingRoutes, adminMarketingRoutes,
+  ]
+  for (const routes of modules) {
+    app.register(routes, { prefix: '/api' })
+  }
 
+  // 全局错误处理（统一识别业务错误码 → HTTP 状态码）
   app.setErrorHandler((error, _request, reply) => {
-    app.log.error(error)
-    reply.code(500).send({ success: false, error: { code: 'INTERNAL_ERROR', message: '服务器内部错误' } })
+    const httpError = toHttpError(error)
+    if (httpError.statusCode >= 500) {
+      app.log.error(error)
+    }
+    reply.code(httpError.statusCode).send(errorResponse(httpError.code, httpError.message))
   })
 
   return app

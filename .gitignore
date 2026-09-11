@@ -8,3 +8,5 @@ backend/dist/
 Thumbs.db
 # backend/prisma/migrations/  # 迁移文件必须提交，勿忽略
 coverage/
+# Typora 本地钩子日志
+Typora_Hook_Log.txt

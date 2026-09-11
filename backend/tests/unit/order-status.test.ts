@@ -1,38 +1,36 @@
 import { describe, it, expect } from 'vitest'
-import { isValidTransition, VALID_TRANSITIONS } from '../../src/utils/order-status.js'
-import { OrderStatus } from '@prisma/client'
+import { isValidTransition } from '../../src/utils/order-status.js'
 
 describe('order-status state machine', () => {
-  it('PENDING can transition to ACCEPTED or CLOSED', () => {
-    expect(isValidTransition('PENDING', 'ACCEPTED')).toBe(true)
-    expect(isValidTransition('PENDING', 'CLOSED')).toBe(true)
+  it('CREATED can transition to PENDING or CANCELLED', () => {
+    expect(isValidTransition('CREATED', 'PENDING')).toBe(true)
+    expect(isValidTransition('CREATED', 'CANCELLED')).toBe(true)
   })
 
-  it('PENDING cannot skip to IN_PROGRESS or COMPLETED', () => {
-    expect(isValidTransition('PENDING', 'IN_PROGRESS')).toBe(false)
-    expect(isValidTransition('PENDING', 'COMPLETED')).toBe(false)
+  it('PENDING can transition to IN_PROGRESS or CANCELLED', () => {
+    expect(isValidTransition('PENDING', 'IN_PROGRESS')).toBe(true)
+    expect(isValidTransition('PENDING', 'CANCELLED')).toBe(true)
   })
 
-  it('ACCEPTED can transition to IN_PROGRESS or CLOSED', () => {
-    expect(isValidTransition('ACCEPTED', 'IN_PROGRESS')).toBe(true)
-    expect(isValidTransition('ACCEPTED', 'CLOSED')).toBe(true)
-  })
-
-  it('IN_PROGRESS can transition to COMPLETED or CLOSED', () => {
+  it('IN_PROGRESS can transition to COMPLETED or CANCELLED', () => {
     expect(isValidTransition('IN_PROGRESS', 'COMPLETED')).toBe(true)
-    expect(isValidTransition('IN_PROGRESS', 'CLOSED')).toBe(true)
+    expect(isValidTransition('IN_PROGRESS', 'CANCELLED')).toBe(true)
   })
 
-  it('COMPLETED can only transition to CLOSED', () => {
-    expect(isValidTransition('COMPLETED', 'CLOSED')).toBe(true)
+  it('ACCEPTED (legacy) can transition to IN_PROGRESS or CANCELLED', () => {
+    expect(isValidTransition('ACCEPTED', 'IN_PROGRESS')).toBe(true)
+    expect(isValidTransition('ACCEPTED', 'CANCELLED')).toBe(true)
+  })
+
+  it('COMPLETED is terminal (no outgoing transitions)', () => {
     expect(isValidTransition('COMPLETED', 'PENDING')).toBe(false)
     expect(isValidTransition('COMPLETED', 'IN_PROGRESS')).toBe(false)
+    expect(isValidTransition('COMPLETED', 'CLOSED')).toBe(false)
   })
 
-  it('CLOSED is terminal state with no valid transitions', () => {
-    const statuses = Object.keys(VALID_TRANSITIONS) as OrderStatus[]
-    statuses.forEach(status => {
-      expect(isValidTransition('CLOSED', status)).toBe(false)
-    })
+  it('CANCELLED and CLOSED are terminal', () => {
+    expect(isValidTransition('CANCELLED', 'PENDING')).toBe(false)
+    expect(isValidTransition('CLOSED', 'PENDING')).toBe(false)
+    expect(isValidTransition('CLOSED', 'IN_PROGRESS')).toBe(false)
   })
 })

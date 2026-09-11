@@ -1,174 +1,166 @@
-# JT-Hub v1.1
+# JT-Hub · 作业/毕设需求对接平台
 
-作业/毕设需求对接与进度追踪系统。用户提交需求，管理员接单处理，全流程状态跟踪 + 积分激励体系。
+作业/毕设需求对接与进度追踪系统。用户提交需求 → 管理员接单处理 → 全流程状态跟踪 + 积分激励 + 商品/转盘营销体系。
+
+> 本仓库为 `ai-jthub` 的后端重构版本：借鉴 [ruoyi-vue-pro（芋道）](https://github.com/YunaiV/ruoyi-vue-pro) 的工程化思想，**保留 Node.js 技术栈不变**，重构为「业务域模块化 + 分层清晰 + 统一错误处理」的架构。详见 [`docs/refactor-plan.md`](docs/refactor-plan.md) 与 [`REFACTOR_LOG.md`](REFACTOR_LOG.md)。
+
+---
 
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 前端 | Vue 3 + Vite + TypeScript + Pinia |
-| 管理端 | Vue 3 + Element Plus + Vite |
-| 后端 | Node.js + Fastify + TypeScript |
-| 数据库 | PostgreSQL + Prisma ORM |
-| 部署 | PM2 + Nginx |
+| 用户端 | Vue 3 + Vite + TypeScript + Pinia（PC/移动端响应式） |
+| 管理端 | Vue 3 + Element Plus + ECharts |
+| 后端 | Node.js + Fastify + TypeScript + Zod |
+| 数据库 | PostgreSQL + Prisma ORM（25 个模型） |
+| 部署 | PM2 + Nginx / Docker |
 
-## 项目结构
+## 架构说明
+
+后端采用**按业务域模块化 + 分层**的架构（借鉴芋道 `yudao-module-*` 与 `controller/service/dal/convert` 分层，翻译到 Node/Fastify 生态）：
+
+- **framework/** —— 框架层：统一响应、错误码、全局异常处理
+- **modules/** —— 业务模块（按领域拆分，每模块内 `route → service → repository` 分层）
+- **config / lib / middlewares / plugins / utils** —— 配置、DB 单例、鉴权、插件、工具
 
 ```
-jthub/
-├── frontend/          # 用户端（PC + 移动端响应式）
-├── admin/             # 管理后台
-├── backend/           # API 服务
-├── deploy/            # 部署配置
-├── specs/             # 功能规格文档
-└── ecosystem.config.js
+backend/src/
+├── app.ts                    # 入口：插件装配 + 模块路由注册 + 全局错误处理
+├── framework/
+│   ├── errors.ts             # HttpError + 错误码→HTTP状态码映射
+│   └── response.ts           # 统一响应 + 错误码枚举
+├── config/env.ts             # 环境变量（Zod 校验）
+├── lib/prisma.ts             # Prisma 单例
+├── middlewares/              # verifyJWT / verifyAdmin / 限流
+├── plugins/                  # cors / jwt / multipart
+├── modules/                  # 业务模块
+│   ├── system/               # 认证、用户管理、系统监控
+│   ├── order/                # 需求订单（完整分层样板）
+│   ├── points/               # 积分体系、积分商城
+│   ├── product/              # 商品、商品订单、优惠码、收款码
+│   ├── forum/                # 论坛帖子、评论
+│   ├── content/              # 活动公告、作品轮播、用户反馈
+│   └── marketing/            # 幸运转盘、活动浮窗
+└── utils/                    # 共享工具（状态机、订单号、日期等）
 ```
+
+### 分层职责
+
+| 层 | 职责 |
+|----|------|
+| `*.routes.ts` | 薄路由：Zod 校验 → 调 service → 统一响应 |
+| `*.service.ts` | 业务逻辑、事务编排 |
+| `*.repository.ts` | Prisma 数据访问（含 VO select 白名单） |
+
+---
 
 ## 功能模块
 
 ### 用户端
 
-| 模块 | 路径 | 说明 |
-|------|------|------|
-| 首页 | `/` | Hero 动画、功能介绍、历代作品轮播、价格表 |
-| 提交需求 | `/submit` | 填写课程/类型/年级/截止日期，支持积分折扣 |
-| 我的订单 | `/my-orders` | 需求订单列表，点击查看详情和状态流转 |
-| 积分中心 | `/points` | 积分明细、兑换记录、我的优惠券 |
-| 积分商城 | `/points/shop` | 用积分兑换服务套餐或折扣券 |
-| 邀请好友 | `/invite` | 专属邀请码，双向积分奖励 |
-| 论坛 | `/forum` | 多板块帖子，支持 Markdown，评论互动 |
-| 活动公告 | `/activity` | 系统公告和优惠活动 |
-| 个人中心 | `/profile` | 修改资料、改密码、邮箱验证 |
-| 认证 | `/login` `/register` `/forgot-password` | 登录注册、忘记密码 |
+| 模块 | 说明 |
+|------|------|
+| 首页 | Hero 动画、功能介绍、历代作品轮播、价格表 |
+| 提交需求 | 填写课程/类型/年级/截止日期，支持积分折扣 |
+| 我的订单 | 需求订单列表，点击查看详情和状态流转 |
+| 积分中心 / 商城 | 积分明细、兑换记录、优惠券、服务套餐 |
+| 邀请好友 | 专属邀请码，双向积分奖励 |
+| 论坛 | 多板块帖子，Markdown 支持，评论互动 |
+| 活动公告 | 系统公告和优惠活动 |
+| 幸运转盘 | 抽奖、兑换码核销 |
 
 ### 管理后台
 
-| 模块 | 路径 | 说明 |
-|------|------|------|
-| 监控大屏 | `/` | 实时统计：今日/本周/累计订单、状态分布、系统资源 |
-| 订单管理 | `/orders` | 需求订单列表、状态变更、设置报价、添加备注 |
-| 需求类型 | `/order-types` | 增删改查，管理需求分类和参考价格 |
-| 活动公告 | `/activities` | 增删改查，支持优惠活动和系统公告 |
-| 论坛管理 | `/posts` | 增删改查、审核、置顶 |
-| 作品轮播 | `/carousel` | 增删改查，首页展示 |
-| 用户反馈 | `/feedback` | 查看、回复、状态更新 |
-| 积分规则 | `/points` | 配置积分事件和分值，手动调整用户积分 |
-| 积分商城 | `/points/shop` | 增删改查，管理可兑换商品 |
-| 兑换审核 | `/points/redeem` | 审核通过/拒绝兑换申请 |
-| 用户管理 | `/users` | 搜索、启用/禁用 |
+| 模块 | 说明 |
+|------|------|
+| 监控大屏 | 今日/本周/累计订单、状态分布、系统资源 |
+| 订单管理 | 需求订单列表、状态变更、报价、备注 |
+| 需求类型 | 管理需求分类和参考价格 |
+| 商品/商品订单 | 商品 CRUD、订单完成/取消、优惠码 |
+| 积分管理 | 积分规则、用户积分、商城商品、兑换审核 |
+| 论坛/活动/轮播/反馈 | 内容审核与管理 |
+| 转盘管理 | 奖品配置、抽奖记录、核销、统计 |
+| 用户管理 | 搜索、启用/禁用 |
 
-### 订单流程
+### 订单状态机
 
 ```
-用户提交需求 → 已创建(CREATED)
-  → 管理员确认 → 待确认(PENDING)
-    → 管理员接单 → 进行中(IN_PROGRESS)
-      → 完成 → 已完成(COMPLETED) → 自动发放奖励积分
-任意状态 → 已取消(CANCELLED)
+CREATED → PENDING → IN_PROGRESS → COMPLETED
+             └──────────┴──────────┘ → CANCELLED
 ```
 
-### 积分体系
-
-| 事件 | 积分 | 说明 |
-|------|------|------|
-| 邀请注册 | +50 | 被邀请人注册成功 |
-| 邀请首购 | +100 | 被邀请人首笔订单完成（给邀请者） |
-| 新用户首购 | +30 | 新用户自己首笔订单完成 |
-| 管理员调整 | ±N | 后台手动调整 |
-| 积分兑换 | -N | 兑换服务套餐或折扣券 |
+---
 
 ## 快速开始
 
 ### 环境要求
 
 - Node.js >= 18
-- pnpm >= 8
+- pnpm >= 8（本仓库使用 pnpm 12，`allowBuilds` 配置见 `pnpm-workspace.yaml`）
 - PostgreSQL >= 14
 
 ### 安装
 
 ```bash
-git clone https://github.com/CN-Jia/ai-jthub.git
-cd ai-jthub
+git clone https://github.com/CN-Jia/jituosc.git
+cd jituosc
 pnpm install
+pnpm --filter backend db:generate   # 生成 Prisma Client
 ```
 
 ### 配置
 
 ```bash
 cp backend/.env.example backend/.env
-# 编辑 .env 填入数据库连接、JWT 密钥等
+# 编辑 .env 填入数据库连接、JWT 密钥、管理员账号等
 ```
 
-### 数据库
+### 初始化数据库
 
 ```bash
-cd backend
-pnpm prisma db push      # 同步 schema
-pnpm prisma generate     # 生成 Client
-pnpm prisma db seed      # 初始化数据（如有）
+pnpm --filter backend db:push      # 同步 schema
+pnpm --filter backend db:seed      # 种子数据（如有）
 ```
 
-### 开发
+### 开发启动
 
 ```bash
-# 启动后端
-pnpm dev:backend
-
-# 启动前端
-pnpm --filter jthub-frontend dev
-
-# 启动管理端
-pnpm --filter admin dev
+pnpm dev:backend                          # 后端 → http://localhost:3000
+pnpm --filter jthub-frontend dev          # 用户端 → http://localhost:5175
+pnpm --filter admin dev                   # 管理端 → http://localhost:5174
 ```
 
-### 构建部署
+### 构建 & 部署
 
 ```bash
-pnpm --filter backend build
-pnpm --filter jthub-frontend build
-pnpm --filter admin build
+pnpm build:backend                        # tsc → backend/dist/
+pnpm build:admin                          # vite build → admin/dist/
 pm2 start ecosystem.config.js
+# 或使用 Docker：docker compose -f docker-compose.prod.yml up -d
 ```
 
-## API 概览
+---
 
-| 模块 | 前缀 | 说明 |
-|------|------|------|
-| 认证 | `/api/auth/*` | 登录、注册、邮箱验证、密码重置 |
-| 需求订单 | `/api/orders/*` | 创建、查询我的订单、订单详情 |
-| 积分 | `/api/points/*` | 邀请、余额、明细、兑换 |
-| 论坛 | `/api/posts/*` | 帖子 CRUD、评论 |
-| 管理 | `/api/admin/*` | 订单管理、用户管理、内容管理 |
-| 积分管理 | `/api/admin/points/*` | 规则配置、用户积分、兑换审核 |
+## 环境变量
 
-## 明暗主题
+见 `backend/.env.example`，关键项：
 
-全站支持明暗模式切换：
+| 变量 | 说明 |
+|------|------|
+| `DATABASE_URL` | PostgreSQL 连接串 |
+| `JWT_SECRET` | JWT 签名密钥（≥16 字符） |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | 管理员账号（bcrypt 哈希） |
+| `SERVERCHAN_TOKEN` | Server酱推送（可选） |
+| `RESEND_API_KEY` | 邮件服务（可选，未配置时控制台打印验证码） |
 
-- 用户端：导航栏右上角切换，支持跟随系统偏好
-- 管理端：顶栏切换按钮，默认暗色主题
+## 测试
 
-## 版本历史
-
-### v1.1 (2026-05-05)
-
-- **订单流程重构**：新增 CREATED/CANCELLED 状态，完整状态流转
-- **积分系统**：邀请拉新、首购奖励、积分商城、兑换审核
-- **提交需求页重写**：支持积分折扣、服务套餐选择
-- **论坛改版**：多板块模式，帖子审核和置顶
-- **管理端重构**：删除商品逻辑，聚焦需求订单管理
-- **全站暗色模式**：所有页面适配明暗切换
-- **管理端 CRUD 补齐**：删除、确认弹窗、错误处理统一
-
-### v1.0 (2026-04)
-
-- 基础框架搭建
-- 用户注册登录
-- 需求提交和订单管理
-- 论坛和活动公告
-- 管理后台
+```bash
+pnpm test              # vitest 单元测试
+pnpm test:coverage     # 含覆盖率
+```
 
 ## License
 
-Private - All rights reserved.
+Private — All rights reserved.

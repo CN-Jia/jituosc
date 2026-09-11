@@ -11,17 +11,6 @@
     "build:backend": "pnpm --filter backend build",
     "build:admin": "pnpm --filter admin build"
   },
-  "workspaces": ["backend", "frontend", "admin"],
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "bcrypt",
-      "core-js",
-      "esbuild",
-      "prisma",
-      "vue-demi"
-    ]
-  }
+  "workspaces": ["backend", "frontend", "admin"]
 }
 
