@@ -7,6 +7,8 @@
         <el-option label="近 1 小时" :value="60" />
         <el-option label="近 3 小时" :value="180" />
         <el-option label="近 6 小时" :value="360" />
+        <el-option label="近 24 小时" :value="1440" />
+        <el-option label="近 7 天" :value="10080" />
       </el-select>
       <span v-if="lastUpdate" class="sys-toolbar-meta">系统快照 {{ lastUpdate }}</span>
     </div>
@@ -286,7 +288,7 @@ const LoadBar = defineComponent({
 const status = ref<any>(null)
 const chartData = ref<any>(null)
 const lastUpdate = ref('')
-const timeRange = ref(60)
+const timeRange = ref(360)
 const chartLoading = ref(false)
 
 const cpuChartRef = ref<HTMLElement>()

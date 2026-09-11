@@ -183,14 +183,17 @@ export async function adminSystemRoutes(fastify: FastifyInstance) {
   // ── 时序图数据 ───────────────────────────────────────────────
   fastify.get('/admin/system/chart', { preHandler: verifyAdmin }, async (request, reply) => {
     const q = request.query as Record<string, string>
-    const minutes = Math.min(1440, Math.max(30, Number(q.minutes) || 60))
-    const step = minutes <= 60 ? 60 : minutes <= 360 ? 300 : 600
+    const minutes = Math.min(10080, Math.max(30, Number(q.minutes) || 60))
+    const step = minutes <= 60 ? 60 : minutes <= 360 ? 300 : minutes <= 1440 ? 600 : 1800
 
-    const [cpuSeries, memSeries, netRxSeries, netTxSeries] = await Promise.all([
+    const [cpuSeries, memSeries, netRxSeries, netTxSeries, load1Series, load5Series, load15Series] = await Promise.all([
       promRange('(1 - avg(rate(node_cpu_seconds_total{mode="idle"}[2m]))) * 100', minutes, step),
       promRange('(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100', minutes, step),
       promRange('sum(rate(node_network_receive_bytes_total{device!="lo"}[2m]))', minutes, step),
       promRange('sum(rate(node_network_transmit_bytes_total{device!="lo"}[2m]))', minutes, step),
+      promRange('node_load1', minutes, step),
+      promRange('node_load5', minutes, step),
+      promRange('node_load15', minutes, step),
     ])
 
     const promAvailable = cpuSeries.length > 0
@@ -202,6 +205,9 @@ export async function adminSystemRoutes(fastify: FastifyInstance) {
       memory: memSeries,
       netRx: netRxSeries,
       netTx: netTxSeries,
+      load1: load1Series,
+      load5: load5Series,
+      load15: load15Series,
     }))
   })
 }
