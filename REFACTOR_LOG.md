@@ -1,4 +1,4 @@
-# ai-jthub 后端重构日志
+# ai-jituo 后端重构日志
 
 > 依据方案：`docs/refactor-plan.md`
 > 方向：保留 Node.js + Fastify + Prisma + PostgreSQL，借鉴芋道分层/模块化思想
@@ -9,8 +9,8 @@
 ## 时间线
 
 ### 2026-09-11 16:35 — Phase 0 开始
-- ✅ 创建桌面目录 `C:\Users\Administrator\Desktop\jthub`
-- ✅ `git clone https://github.com/CN-Jia/ai-jthub.git`（git 2.55.0.windows.3）
+- ✅ 创建桌面目录 `C:\Users\Administrator\Desktop\jituo`
+- ✅ `git clone https://github.com/CN-Jia/ai-jituo.git`（git 2.55.0.windows.3）
 - ✅ 转移重构方案 → `docs/refactor-plan.md`
 - ✅ 建立本日志 `REFACTOR_LOG.md`
 - ✅ 盘点 `backend/src` 结构：

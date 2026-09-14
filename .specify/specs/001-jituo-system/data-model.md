@@ -1,6 +1,6 @@
-# Data Model: JT-Hub 数据库设计 v4
+# Data Model: 极拓空间 数据库设计 v4
 
-**Branch**: `001-jthub-system` | **Updated**: 2026-04-28 v4（新增完整注册登录、论坛、轮播模型）
+**Branch**: `001-jituo-system` | **Updated**: 2026-04-28 v4（新增完整注册登录、论坛、轮播模型）
 
 ---
 

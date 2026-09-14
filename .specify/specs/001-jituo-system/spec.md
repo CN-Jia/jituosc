@@ -1,6 +1,6 @@
-# Feature Specification: 作业/毕设需求管理系统（JT-Hub）v3
+# Feature Specification: 作业/毕设需求管理系统（极拓空间）v3
 
-**Feature Branch**: `001-jthub-system`  
+**Feature Branch**: `001-jituo-system`  
 **Created**: 2026-04-19 | **Updated**: 2026-04-28 v4（全面 H5 改版 + 完整注册登录 + 论坛模块）  
 **Status**: Clarified ✅ v4
 

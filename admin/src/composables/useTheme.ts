@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 
-const KEY = 'jthub-admin-theme'
+const KEY = 'jituo-admin-theme'
 const stored = localStorage.getItem(KEY)
 // 默认暗色；若存储了 'light' 则亮色
 const isDark = ref(stored !== 'light')

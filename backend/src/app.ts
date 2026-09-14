@@ -87,7 +87,7 @@ if (process.env.NODE_ENV !== 'test') {
   buildApp().then(app => {
     app.listen({ port: env.PORT, host: '0.0.0.0' }, (err) => {
       if (err) { app.log.error(err); process.exit(1) }
-      logger.info(`🚀 JT-Hub API running at http://localhost:${env.PORT}`)
+      logger.info(`🚀 极拓空间 API running at http://localhost:${env.PORT}`)
     })
   })
 }

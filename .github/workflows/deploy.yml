@@ -7,8 +7,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BACKEND: ghcr.io/cn-jia/jthub-backend
-  IMAGE_NGINX: ghcr.io/cn-jia/jthub-nginx
+  IMAGE_BACKEND: ghcr.io/cn-jia/jituo-backend
+  IMAGE_NGINX: ghcr.io/cn-jia/jituo-nginx
 
 jobs:
   build-and-deploy:
@@ -62,7 +62,7 @@ jobs:
           script: |
             set -e
             echo ">>> Pull latest images..."
-            cd /var/www/jthub
+            cd /var/www/jituo
             docker compose -f docker-compose.prod.yml pull
 
             echo ">>> Redeploy containers..."

@@ -1,13 +1,13 @@
-# Implementation Plan: JT-Hub v2
+# Implementation Plan: 极拓空间 v2
 
-**Branch**: `001-jthub-system` | **Updated**: 2026-04-23 v3（移除微信小程序端）  
-**Spec**: `specs/001-jthub-system/spec.md`
+**Branch**: `001-jituo-system` | **Updated**: 2026-04-23 v3（移除微信小程序端）  
+**Spec**: `specs/001-jituo-system/spec.md`
 
 ---
 
 ## Summary
 
-构建 JT-Hub 系统：后端 RESTful API + PC 用户端 + 管理后台，移除微信小程序、文件上传、短链接、邮件通知等功能。
+构建 极拓空间 系统：后端 RESTful API + PC 用户端 + 管理后台，移除微信小程序、文件上传、短链接、邮件通知等功能。
 
 ---
 
@@ -24,7 +24,7 @@
 ## Project Structure
 
 ```text
-ai-jthub/
+ai-jituo/
 ├── backend/                          # Node.js + Fastify API
 │   ├── prisma/
 │   │   ├── schema.prisma             # 数据库模型
@@ -126,7 +126,7 @@ ai-jthub/
 
 ```env
 # 数据库
-DATABASE_URL="postgresql://postgres:password@localhost:5433/jthub_dev"
+DATABASE_URL="postgresql://postgres:password@localhost:5433/jituo_dev"
 
 # JWT
 JWT_SECRET="your-long-random-secret"

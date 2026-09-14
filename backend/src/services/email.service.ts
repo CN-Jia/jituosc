@@ -14,11 +14,11 @@ export async function sendVerifyCode(email: string, code: string): Promise<void>
   await resend.emails.send({
     from: env.MAIL_FROM,
     to: email,
-    subject: '【JT-Hub】邮箱验证码',
+    subject: '【极拓空间】邮箱验证码',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff;border-radius:12px;border:1px solid #e8edf2">
-        <h2 style="color:#1677ff;margin-bottom:8px">JT-Hub 邮箱验证</h2>
-        <p style="color:#666;margin-bottom:24px">您正在注册 JT-Hub 账号，请使用以下验证码完成验证：</p>
+        <h2 style="color:#1677ff;margin-bottom:8px">极拓空间 邮箱验证</h2>
+        <p style="color:#666;margin-bottom:24px">您正在注册 极拓空间 账号，请使用以下验证码完成验证：</p>
         <div style="background:#f0f6ff;border-radius:8px;padding:20px;text-align:center;margin-bottom:24px">
           <span style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#1677ff">${code}</span>
         </div>
@@ -39,10 +39,10 @@ export async function sendResetCode(email: string, code: string): Promise<void> 
   await resend.emails.send({
     from: env.MAIL_FROM,
     to: email,
-    subject: '【JT-Hub】密码重置验证码',
+    subject: '【极拓空间】密码重置验证码',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff;border-radius:12px;border:1px solid #e8edf2">
-        <h2 style="color:#1677ff;margin-bottom:8px">JT-Hub 密码重置</h2>
+        <h2 style="color:#1677ff;margin-bottom:8px">极拓空间 密码重置</h2>
         <p style="color:#666;margin-bottom:24px">您正在重置密码，请使用以下验证码完成验证：</p>
         <div style="background:#f0f6ff;border-radius:8px;padding:20px;text-align:center;margin-bottom:24px">
           <span style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#1677ff">${code}</span>
@@ -64,7 +64,7 @@ export async function sendFeedbackReply(email: string, title: string, reply: str
   await resend.emails.send({
     from: env.MAIL_FROM,
     to: email,
-    subject: '【JT-Hub】您的反馈已收到回复',
+    subject: '【极拓空间】您的反馈已收到回复',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff;border-radius:12px;border:1px solid #e8edf2">
         <h2 style="color:#1677ff;margin-bottom:8px">您的反馈已回复</h2>
@@ -72,7 +72,7 @@ export async function sendFeedbackReply(email: string, title: string, reply: str
         <div style="background:#f7f8fc;border-radius:8px;padding:16px;margin:16px 0;border-left:4px solid #1677ff">
           <p style="color:#333;margin:0">${reply}</p>
         </div>
-        <p style="color:#999;font-size:13px">登录 JT-Hub 查看完整详情。</p>
+        <p style="color:#999;font-size:13px">登录 极拓空间 查看完整详情。</p>
       </div>
     `,
   })

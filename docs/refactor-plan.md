@@ -1,4 +1,4 @@
-# ai-jthub 重构方案（借鉴 ruoyi-vue-pro 工程化思想）
+# ai-jituo 重构方案（借鉴 ruoyi-vue-pro 工程化思想）
 
 > 方向：**保留 Node.js + Fastify + Prisma + PostgreSQL 技术栈不变**，借鉴芋道（ruoyi-vue-pro）的
 > **领域模块化 + 四层分层（route/service/repository/dto-vo）** 思想，重构后端结构。
@@ -24,7 +24,7 @@
 
 ### 2.1 分层（翻译芋道 `controller/service/dal/convert` 到 Node 生态）
 
-| 芋道（Java） | ai-jthub（Node/Fastify） | 职责 |
+| 芋道（Java） | ai-jituo（Node/Fastify） | 职责 |
 |---|---|---|
 | controller | **route**（薄层） | 只做：Zod 校验 → 调 service → 返回统一响应 |
 | service(+Impl) | **service** | 业务逻辑、事务编排、跨表规则 |

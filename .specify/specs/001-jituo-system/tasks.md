@@ -1,4 +1,4 @@
-# Task List: JT-Hub v4 开发任务
+# Task List: 极拓空间 v4 开发任务
 
 **Updated**: 2026-05-04 v5（安全加固 + 功能补全 + 代码清理） | **Status**: 基本完成
 
@@ -70,7 +70,7 @@
 - [x] **T62** 邮箱验证重发：后端 `POST /auth/resend-verification` + `POST /auth/verify-email`，前端个人中心集成
 - [x] **T63** 论坛发帖页面：前端 `/forum/new` 页面
 - [x] **T64** 管理员登录后重定向：已登录访问 `/admin/login` 自动跳转仪表盘
-- [x] **T65** 修复前端 title：改为「JT-Hub - 专业学业辅助平台」
+- [x] **T65** 修复前端 title：改为「极拓空间 - 专业学业辅助平台」
 
 ### P2 代码质量
 - [x] **T66** 删除 uni-app 死代码组件（OrderCard.vue、StatusBadge.vue）
@@ -96,12 +96,12 @@
 
 ```bash
 # 服务器执行
-cd /var/www/jthub
+cd /var/www/jituo
 git pull
 pnpm install
 pnpm --filter backend build
-pnpm --filter jthub-frontend build
-pnpm --filter jthub-admin build
+pnpm --filter jituo-frontend build
+pnpm --filter jituo-admin build
 cd backend && pnpm prisma migrate deploy && cd ..
-pm2 restart jthub-api
+pm2 restart jituo-api
 ```

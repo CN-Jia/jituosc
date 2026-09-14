@@ -521,7 +521,7 @@ defineExpose({ loadAll })
 const installDocs = `# 参考 deploy/DEPLOY.md 或监控页历史版本中的完整脚本
 # 核心：node_exporter :9100 + Prometheus :9090
 # backend/.env: PROMETHEUS_URL=http://localhost:9090
-# pm2 restart jthub-api --update-env`
+# pm2 restart jituo-api --update-env`
 </script>
 
 <style scoped>

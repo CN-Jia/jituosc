@@ -1,6 +1,6 @@
 {
-  "name": "JT-Hub 学业辅助平台",
-  "short_name": "JT-Hub",
+  "name": "极拓空间 学业辅助平台",
+  "short_name": "极拓空间",
   "description": "专业学业辅助，作业代做服务平台",
   "start_url": "/",
   "display": "standalone",

@@ -13,7 +13,7 @@
       <div class="lp-header">
         <JtLogo :size="52" />
         <div class="lp-brand">
-          <span class="brand-name">JT-Hub</span>
+          <span class="brand-name">极拓空间</span>
           <span class="brand-sub">ADMIN CONSOLE</span>
         </div>
       </div>

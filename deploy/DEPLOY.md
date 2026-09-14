@@ -1,4 +1,4 @@
-# JT-Hub 生产部署文档
+# 极拓空间 生产部署文档
 
 **目标系统**：Ubuntu 24.04 LTS  
 **架构**：Nginx（反向代理 + 静态文件）+ PM2（Node.js 守护）+ PostgreSQL 16  
@@ -102,9 +102,9 @@ sudo systemctl start postgresql
 
 # 创建数据库和用户
 sudo -u postgres psql <<EOF
-CREATE USER jthub WITH PASSWORD '替换为强密码';
-CREATE DATABASE jthub_prod OWNER jthub;
-GRANT ALL PRIVILEGES ON DATABASE jthub_prod TO jthub;
+CREATE USER jituo WITH PASSWORD '替换为强密码';
+CREATE DATABASE jituo_prod OWNER jituo;
+GRANT ALL PRIVILEGES ON DATABASE jituo_prod TO jituo;
 EOF
 ```
 
@@ -118,11 +118,11 @@ EOF
 
 ```bash
 # 在服务器上
-sudo mkdir -p /var/www/jthub
-sudo chown deploy:deploy /var/www/jthub
+sudo mkdir -p /var/www/jituo
+sudo chown deploy:deploy /var/www/jituo
 
-cd /var/www/jthub
-git clone https://github.com/your-username/ai-jthub.git .
+cd /var/www/jituo
+git clone https://github.com/your-username/ai-jituo.git .
 ```
 
 ### 方式 B：通过 scp 直接上传（本地执行）
@@ -132,12 +132,12 @@ git clone https://github.com/your-username/ai-jthub.git .
 # 先将本地项目打包（排除 node_modules、dist、.env）
 # 然后上传
 
-scp -r C:\Users\Admin\Desktop\ai-jthub deploy@your-server-ip:/tmp/jthub-upload
+scp -r C:\Users\Admin\Desktop\ai-jituo deploy@your-server-ip:/tmp/jituo-upload
 
 # 在服务器上解压到目标目录
-sudo mkdir -p /var/www/jthub
-sudo chown deploy:deploy /var/www/jthub
-cp -r /tmp/jthub-upload/. /var/www/jthub/
+sudo mkdir -p /var/www/jituo
+sudo chown deploy:deploy /var/www/jituo
+cp -r /tmp/jituo-upload/. /var/www/jituo/
 ```
 
 ### 方式 C：rsync（增量同步，本地执行）
@@ -149,8 +149,8 @@ rsync -avz --progress \
   --exclude='dist' \
   --exclude='.env' \
   --exclude='*.log' \
-  C:/Users/Admin/Desktop/ai-jthub/ \
-  deploy@your-server-ip:/var/www/jthub/
+  C:/Users/Admin/Desktop/ai-jituo/ \
+  deploy@your-server-ip:/var/www/jituo/
 ```
 
 ---
@@ -158,7 +158,7 @@ rsync -avz --progress \
 ## 5. 配置环境变量
 
 ```bash
-cd /var/www/jthub/backend
+cd /var/www/jituo/backend
 
 # 创建生产环境配置文件
 nano .env
@@ -168,7 +168,7 @@ nano .env
 
 ```bash
 # ── 数据库 ───────────────────────────────────────────────────
-DATABASE_URL="postgresql://用户名:密码@localhost:5432/jthub_prod"
+DATABASE_URL="postgresql://用户名:密码@localhost:5432/jituo_prod"
 
 # ── JWT ──────────────────────────────────────────────────────
 # 生成随机密钥：node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
@@ -182,7 +182,7 @@ SERVERCHAN_TOKEN="SCT_your_actual_token"
 # ── 管理员账号 ───────────────────────────────────────────────
 ADMIN_USERNAME="admin"
 # 生成密码 Hash（在服务器本地执行）:
-# cd /var/www/jthub/backend && node -e "const b=require('bcrypt'); b.hash('你的密码',10).then(console.log)"
+# cd /var/www/jituo/backend && node -e "const b=require('bcrypt'); b.hash('你的密码',10).then(console.log)"
 ADMIN_PASSWORD_HASH="$2b$10$..."
 
 # ── 管理员微信号（展示给用户的联系方式）─────────────────────
@@ -202,7 +202,7 @@ chmod 600 .env
 **生成管理员密码 Hash**（在服务器上执行）：
 
 ```bash
-cd /var/www/jthub/backend
+cd /var/www/jituo/backend
 node -e "const b=require('bcrypt'); b.hash('你设定的密码',10).then(console.log)"
 # 把输出的哈希值填入 .env 的 ADMIN_PASSWORD_HASH
 ```
@@ -212,7 +212,7 @@ node -e "const b=require('bcrypt'); b.hash('你设定的密码',10).then(console
 ## 6. 构建项目
 
 ```bash
-cd /var/www/jthub
+cd /var/www/jituo
 
 # 安装所有依赖（生产 + 开发依赖，build 需要）
 pnpm install
@@ -222,7 +222,7 @@ pnpm --filter backend build
 # 产物位于 backend/dist/
 
 # ── 构建 PC 用户端 ───────────────────────────────────────────
-pnpm --filter jthub-frontend build
+pnpm --filter jituo-frontend build
 # 产物位于 frontend/dist/
 
 # ── 构建管理后台 ─────────────────────────────────────────────
@@ -240,7 +240,7 @@ ls admin/dist/index.html
 ## 7. 初始化数据库
 
 ```bash
-cd /var/www/jthub/backend
+cd /var/www/jituo/backend
 
 # 生成 Prisma Client
 pnpm prisma generate
@@ -281,13 +281,13 @@ EOF
 ### 8.2 创建站点配置
 
 ```bash
-sudo nano /etc/nginx/sites-available/jthub.conf
+sudo nano /etc/nginx/sites-available/jituo.conf
 ```
 
 粘贴以下内容（**把 `yourdomain.com` 替换为你的真实域名**）：
 
 ```nginx
-upstream jthub_api {
+upstream jituo_api {
     server 127.0.0.1:3000;
     keepalive 32;
 }
@@ -322,7 +322,7 @@ server {
 
     # PC 用户端静态文件
     location / {
-        root /var/www/jthub/frontend/dist;
+        root /var/www/jituo/frontend/dist;
         index index.html;
         try_files $uri $uri/ /index.html;
         expires 1h;
@@ -331,14 +331,14 @@ server {
 
     # 静态资源长缓存
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
-        root /var/www/jthub/frontend/dist;
+        root /var/www/jituo/frontend/dist;
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
 
     # API 反向代理
     location /api/ {
-        proxy_pass http://jthub_api;
+        proxy_pass http://jituo_api;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         proxy_set_header Host $host;
@@ -351,7 +351,7 @@ server {
 
     # 管理后台（子路径 /admin/）
     location /admin/ {
-        alias /var/www/jthub/admin/dist/;
+        alias /var/www/jituo/admin/dist/;
         index index.html;
         try_files $uri $uri/ /admin/index.html;
     }
@@ -363,7 +363,7 @@ server {
 ```bash
 # 先用 HTTP-only 临时配置测试（申请证书前 443 块无法生效）
 # 把上面配置中 listen 443 整个 server 块先注释掉，或用下面的临时配置：
-sudo tee /etc/nginx/sites-available/jthub-temp.conf > /dev/null <<'EOF'
+sudo tee /etc/nginx/sites-available/jituo-temp.conf > /dev/null <<'EOF'
 server {
     listen 80;
     server_name yourdomain.com www.yourdomain.com;
@@ -377,7 +377,7 @@ server {
 }
 EOF
 
-sudo ln -s /etc/nginx/sites-available/jthub-temp.conf /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/jituo-temp.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
@@ -414,8 +414,8 @@ sudo systemctl status certbot.timer
 
 ```bash
 # 删除临时配置，启用正式配置
-sudo rm /etc/nginx/sites-enabled/jthub-temp.conf
-sudo ln -s /etc/nginx/sites-available/jthub.conf /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/jituo-temp.conf
+sudo ln -s /etc/nginx/sites-available/jituo.conf /etc/nginx/sites-enabled/
 
 sudo nginx -t          # 必须显示 "syntax is ok"
 sudo systemctl reload nginx
@@ -428,7 +428,7 @@ sudo systemctl reload nginx
 ### 10.1 更新 ecosystem.config.js
 
 ```bash
-nano /var/www/jthub/ecosystem.config.js
+nano /var/www/jituo/ecosystem.config.js
 ```
 
 确认内容如下（把域名替换掉）：
@@ -437,15 +437,15 @@ nano /var/www/jthub/ecosystem.config.js
 module.exports = {
   apps: [
     {
-      name: 'jthub-api',
+      name: 'jituo-api',
       script: './backend/dist/app.js',
-      cwd: '/var/www/jthub',
+      cwd: '/var/www/jituo',
       instances: 1,          // 小流量单实例即可，稳定后可改为 2
       exec_mode: 'fork',
       watch: false,
       max_memory_restart: '400M',
-      error_file: '/var/log/jthub/error.log',
-      out_file: '/var/log/jthub/out.log',
+      error_file: '/var/log/jituo/error.log',
+      out_file: '/var/log/jituo/out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       env: {
         NODE_ENV: 'production',
@@ -459,17 +459,17 @@ module.exports = {
 ### 10.2 创建日志目录并启动
 
 ```bash
-sudo mkdir -p /var/log/jthub
-sudo chown deploy:deploy /var/log/jthub
+sudo mkdir -p /var/log/jituo
+sudo chown deploy:deploy /var/log/jituo
 
-cd /var/www/jthub
+cd /var/www/jituo
 
 # 启动
 pm2 start ecosystem.config.js
 
 # 查看状态（status 应为 online）
 pm2 status
-pm2 logs jthub-api --lines 20
+pm2 logs jituo-api --lines 20
 
 # 设置开机自启
 pm2 save
@@ -499,7 +499,7 @@ curl -I https://yourdomain.com/admin/
 # 期望: HTTP/2 200
 
 # 5. 检查后端日志无 ERROR
-pm2 logs jthub-api --lines 50
+pm2 logs jituo-api --lines 50
 ```
 
 浏览器验证：
@@ -522,28 +522,28 @@ rsync -avz --progress `
   --exclude='node_modules' `
   --exclude='dist' `
   --exclude='.env' `
-  C:/Users/Admin/Desktop/ai-jthub/ `
-  deploy@your-server-ip:/var/www/jthub/
+  C:/Users/Admin/Desktop/ai-jituo/ `
+  deploy@your-server-ip:/var/www/jituo/
 ```
 
 ### 服务器端更新
 
 ```bash
-cd /var/www/jthub
+cd /var/www/jituo
 
 # 安装新增依赖（如有）
 pnpm install
 
 # 重新构建（按需选择）
 pnpm --filter backend build
-pnpm --filter jthub-frontend build
+pnpm --filter jituo-frontend build
 pnpm --filter admin build
 
 # 数据库迁移（仅 schema 有变更时执行）
 cd backend && pnpm prisma migrate deploy && cd ..
 
 # 重启后端
-pm2 restart jthub-api
+pm2 restart jituo-api
 
 # 重载 Nginx（仅 nginx 配置有变更时）
 sudo nginx -t && sudo systemctl reload nginx
@@ -557,13 +557,13 @@ sudo nginx -t && sudo systemctl reload nginx
 ```bash
 # 检查后端是否在运行
 pm2 status
-pm2 logs jthub-api --lines 30
+pm2 logs jituo-api --lines 30
 
 # 检查 3000 端口是否监听
 ss -tlnp | grep 3000
 
 # 重启后端
-pm2 restart jthub-api
+pm2 restart jituo-api
 ```
 
 ### 数据库连接失败
@@ -572,10 +572,10 @@ pm2 restart jthub-api
 sudo systemctl status postgresql
 
 # 测试连接
-psql -U jthub -d jthub_prod -h localhost -c "SELECT 1;"
+psql -U jituo -d jituo_prod -h localhost -c "SELECT 1;"
 
 # 检查 .env 中 DATABASE_URL 密码是否正确
-cat /var/www/jthub/backend/.env | grep DATABASE_URL
+cat /var/www/jituo/backend/.env | grep DATABASE_URL
 ```
 
 ### Nginx 配置报错
@@ -593,7 +593,7 @@ sudo certbot renew --dry-run
 
 ### 查看实时日志
 ```bash
-pm2 logs jthub-api          # 后端实时日志
+pm2 logs jituo-api          # 后端实时日志
 sudo tail -f /var/log/nginx/error.log   # Nginx 错误
 sudo tail -f /var/log/nginx/access.log  # Nginx 访问
 ```
@@ -610,7 +610,7 @@ pm2 monit      # 进程资源占用实时监控
 ## 附：目录结构参考
 
 ```
-/var/www/jthub/
+/var/www/jituo/
 ├── backend/
 │   ├── dist/          ← tsc 编译产物（backend build 生成）
 │   ├── prisma/
@@ -623,7 +623,7 @@ pm2 monit      # 进程资源占用实时监控
 ├── ecosystem.config.js
 └── package.json
 
-/var/log/jthub/
+/var/log/jituo/
 ├── out.log            ← 后端标准输出
 └── error.log          ← 后端错误输出
 ```

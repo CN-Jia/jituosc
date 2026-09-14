@@ -1,4 +1,4 @@
-# Quickstart: JT-Hub 本地开发启动指南
+# Quickstart: 极拓空间 本地开发启动指南
 
 **前提**：已安装 Node.js 20+、pnpm、Docker Desktop
 
@@ -7,8 +7,8 @@
 ## 1. 克隆项目并安装依赖
 
 ```bash
-git clone <your-repo-url> jthub
-cd jthub
+git clone <your-repo-url> jituo
+cd jituo
 pnpm install   # 安装所有 workspace 依赖
 ```
 
@@ -18,10 +18,10 @@ pnpm install   # 安装所有 workspace 依赖
 
 ```bash
 docker run -d \
-  --name jthub-postgres \
-  -e POSTGRES_USER=jthub \
+  --name jituo-postgres \
+  -e POSTGRES_USER=jituo \
   -e POSTGRES_PASSWORD=jiao0924 \
-  -e POSTGRES_DB=jthub_dev \
+  -e POSTGRES_DB=jituo_dev \
   -p 5432:5432 \
   postgres:16
 ```
@@ -38,7 +38,7 @@ cp .env.example .env
 编辑 `.env`，最少需要填写：
 
 ```bash
-DATABASE_URL="postgresql://jthub:jiao0924@localhost:5432/jthub_dev"
+DATABASE_URL="postgresql://jituo:jiao0924@localhost:5432/jituo_dev"
 JWT_SECRET="dev-secret-key-change-in-prod"
 SERVERCHAN_TOKEN="你的Server酱Token"
 ADMIN_USERNAME="admin"
@@ -77,7 +77,7 @@ pnpm --filter backend dev
 ## 6. 启动 PC 用户端
 
 ```bash
-pnpm --filter jthub-frontend dev
+pnpm --filter jituo-frontend dev
 # 访问 http://localhost:5173
 ```
 
@@ -86,7 +86,7 @@ pnpm --filter jthub-frontend dev
 ## 7. 启动管理后台
 
 ```bash
-pnpm --filter jthub-admin dev
+pnpm --filter jituo-admin dev
 # 访问 http://localhost:5174
 # 用 ADMIN_USERNAME / 你设置的密码 登录
 ```
@@ -110,10 +110,10 @@ pnpm --filter backend build        # 编译生产版本
 pnpm --filter backend prisma:studio # 可视化数据库管理界面
 
 # PC 用户端
-pnpm --filter jthub-frontend dev   # 开发模式
-pnpm --filter jthub-frontend build # 编译生产版本
+pnpm --filter jituo-frontend dev   # 开发模式
+pnpm --filter jituo-frontend build # 编译生产版本
 
 # 管理后台
-pnpm --filter jthub-admin dev      # 开发模式
-pnpm --filter jthub-admin build    # 编译生产版本
+pnpm --filter jituo-admin dev      # 开发模式
+pnpm --filter jituo-admin build    # 编译生产版本
 ```

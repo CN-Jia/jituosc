@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**jthub** — 作业/毕设需求对接与进度追踪系统。pnpm monorepo，三个工作区，部署在 `jthub.cc.cd`。
+**jituo** — 作业/毕设需求对接与进度追踪系统。pnpm monorepo，三个工作区，部署在 `jituo.cc.cd`。
 
 ## Essential Commands
 
@@ -16,7 +16,7 @@ pnpm dev:admin            # Admin 面板 → localhost:5174（Vite HMR）
 # 单独进入工作区运行
 pnpm --filter backend dev           # 或 cd backend && pnpm dev
 pnpm --filter admin dev             # 或 cd admin && pnpm dev
-pnpm --filter jthub-frontend dev    # 前端 → localhost:5175
+pnpm --filter jituo-frontend dev    # 前端 → localhost:5175
 
 # 测试（仅后端）
 pnpm test                          # vitest run

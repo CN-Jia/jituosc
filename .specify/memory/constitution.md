@@ -1,4 +1,4 @@
-# ai-jthub Constitution
+# ai-jituo Constitution
 
 ## Core Principles
 

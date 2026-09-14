@@ -1,6 +1,6 @@
 #!/bin/bash
 # Let's Encrypt SSL 证书自动续签脚本
-# 建议加入 crontab: 0 3 * * 1 /opt/jthub/deploy/certbot/renew.sh >> /var/log/certbot-renew.log 2>&1
+# 建议加入 crontab: 0 3 * * 1 /opt/jituo/deploy/certbot/renew.sh >> /var/log/certbot-renew.log 2>&1
 
 set -e
 

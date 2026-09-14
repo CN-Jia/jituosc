@@ -75,7 +75,7 @@ await prisma.$transaction(async (tx) => {
 
 ```bash
 # 在服务器执行
-cd /var/www/jthub
+cd /var/www/jituo
 git pull origin 001-points-system   # 或 master（合并后）
 
 cd backend
@@ -83,7 +83,7 @@ pnpm prisma db push                  # 应用新表
 pnpm prisma generate
 pnpm build
 
-pm2 restart jthub-api --update-env
+pm2 restart jituo-api --update-env
 
 cd ../frontend && pnpm build
 cd ../admin && pnpm build

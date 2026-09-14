@@ -2,7 +2,7 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-header">
-        <router-link to="/" class="auth-logo">JT-Hub</router-link>
+        <router-link to="/" class="auth-logo">极拓空间</router-link>
         <h1 class="auth-title">{{ step === 1 ? '找回密码' : '重置密码' }}</h1>
         <p class="auth-sub">{{ step === 1 ? '输入注册邮箱，我们将发送验证码' : '输入验证码和新密码' }}</p>
       </div>

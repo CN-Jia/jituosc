@@ -13,7 +13,7 @@ export interface UserInfo {
 }
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref(localStorage.getItem('jthub_token') ?? '')
+  const token = ref(localStorage.getItem('jituo_token') ?? '')
   const userInfo = ref<UserInfo | null>(null)
 
   const isLoggedIn = computed(() => !!token.value)
@@ -22,24 +22,24 @@ export const useUserStore = defineStore('user', () => {
   function setAuth(t: string, info: UserInfo) {
     token.value = t
     userInfo.value = info
-    localStorage.setItem('jthub_token', t)
-    localStorage.setItem('jthub_user', JSON.stringify(info))
+    localStorage.setItem('jituo_token', t)
+    localStorage.setItem('jituo_user', JSON.stringify(info))
   }
 
   function setUserInfo(info: UserInfo) {
     userInfo.value = info
-    localStorage.setItem('jthub_user', JSON.stringify(info))
+    localStorage.setItem('jituo_user', JSON.stringify(info))
   }
 
   function logout() {
     token.value = ''
     userInfo.value = null
-    localStorage.removeItem('jthub_token')
-    localStorage.removeItem('jthub_user')
+    localStorage.removeItem('jituo_token')
+    localStorage.removeItem('jituo_user')
   }
 
   // 从 localStorage 恢复登录状态
-  const savedUser = localStorage.getItem('jthub_user')
+  const savedUser = localStorage.getItem('jituo_user')
   if (savedUser && token.value) {
     try { userInfo.value = JSON.parse(savedUser) } catch { /* ignore */ }
   }

@@ -8,7 +8,7 @@
       <div class="nav-inner">
         <router-link to="/" class="nav-logo" @click="closeMobileMenu">
           <JtLogo :size="28" />
-          <span class="logo-text">JT-Hub</span>
+          <span class="logo-text">极拓空间</span>
         </router-link>
 
         <!-- 桌面导航 -->
@@ -171,11 +171,11 @@
 
     <footer class="footer hide-on-mobile">
       <div class="footer-inner">
-        <div class="footer-logo"><JtLogo :size="22" style="display:inline-block;vertical-align:middle;margin-right:6px"/> JT-Hub</div>
+        <div class="footer-logo"><JtLogo :size="22" style="display:inline-block;vertical-align:middle;margin-right:6px"/> 极拓空间</div>
         <div class="footer-info">
           <span>商务合作微信：<strong>{{ adminWechat }}</strong>（备注来意）</span>
         </div>
-        <div class="footer-copy">© 2026 JT-Hub. All rights reserved.</div>
+        <div class="footer-copy">© 2026 极拓空间. All rights reserved.</div>
       </div>
     </footer>
   </div>

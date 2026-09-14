@@ -13,7 +13,7 @@
         <JtLogo :size="collapsed ? 30 : 34" />
         <Transition name="fade-slide">
           <div v-if="!collapsed" class="sl-brand">
-            <span class="brand-name">JT-Hub</span>
+            <span class="brand-name">极拓空间</span>
             <span class="brand-sub">ADMIN</span>
           </div>
         </Transition>
@@ -175,7 +175,7 @@ const titleMap: Record<string, string> = {
   '/users': '用户管理',
 }
 
-const pageTitle = computed(() => titleMap[route.path] ?? 'JT-Hub 管理后台')
+const pageTitle = computed(() => titleMap[route.path] ?? '极拓空间 管理后台')
 
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/'

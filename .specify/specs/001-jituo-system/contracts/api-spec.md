@@ -1,4 +1,4 @@
-# API Contract: JT-Hub RESTful API v3
+# API Contract: 极拓空间 RESTful API v3
 
 **Version**: v3.0 | **Updated**: 2026-05-04（完整重写，匹配当前实现）
 **Base URL**: `https://yourdomain.com/api`

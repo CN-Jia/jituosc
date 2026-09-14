@@ -19,7 +19,7 @@ async function pushServerChan(title: string, content: string): Promise<void> {
 async function pushAdminNewOrder(order: Order & { orderType?: { name: string } | null }): Promise<void> {
   const deadlineStr = new Date(order.deadline).toLocaleDateString('zh-CN')
   const gradeMap: Record<string, string> = { FRESHMAN: '大一', SOPHOMORE: '大二', JUNIOR: '大三' }
-  const title = `[JT-Hub] 新需求：${order.courseName}`
+  const title = `[极拓空间] 新需求：${order.courseName}`
   const content = `
 **订单号**：${order.orderNo}
 **课程**：${order.courseName}
@@ -42,7 +42,7 @@ async function pushAdminStatusChange(
     COMPLETED: '已完成',
     CLOSED: '已关闭',
   }
-  const title = `[JT-Hub] 订单状态变更：${statusLabels[newStatus] ?? newStatus}`
+  const title = `[极拓空间] 订单状态变更：${statusLabels[newStatus] ?? newStatus}`
   const content = `
 **订单号**：${order.orderNo}
 **课程**：${order.courseName}

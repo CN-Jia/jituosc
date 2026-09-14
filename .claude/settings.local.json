@@ -7,7 +7,7 @@
       "Bash(git checkout *)",
       "Bash(git merge *)",
       "mcp__Claude_in_Chrome__navigate",
-      "WebFetch(domain:jthub.cc.cd)",
+      "WebFetch(domain:jituo.cc.cd)",
       "Bash(git log *)",
       "Bash(git fetch *)",
       "Bash(sed -n '145,160p' frontend/src/App.vue)",

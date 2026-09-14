@@ -1,4 +1,4 @@
-# JT-Hub 生产部署
+# 极拓空间 生产部署
 #
 # 用法:
 #   方案 A（拉取预构建镜像，CD 自动部署）:
@@ -17,11 +17,11 @@
 
 services:
   backend:
-    image: ghcr.io/cn-jia/jthub-backend:latest
+    image: ghcr.io/cn-jia/jituo-backend:latest
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: jthub-backend
+    container_name: jituo-backend
     restart: always
     mem_limit: 256M
     mem_reservation: 128M
@@ -43,11 +43,11 @@ services:
         max-file: "3"
 
   nginx:
-    image: ghcr.io/cn-jia/jthub-nginx:latest
+    image: ghcr.io/cn-jia/jituo-nginx:latest
     build:
       context: .
       dockerfile: Dockerfile.nginx
-    container_name: jthub-nginx
+    container_name: jituo-nginx
     restart: always
     mem_limit: 64M
     ports:

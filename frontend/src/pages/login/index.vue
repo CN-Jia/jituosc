@@ -2,7 +2,7 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-header">
-        <router-link to="/" class="auth-logo">⚡ JT-Hub</router-link>
+        <router-link to="/" class="auth-logo">⚡ 极拓空间</router-link>
         <h1 class="auth-title">欢迎回来</h1>
         <p class="auth-sub">登录以提交需求和查看订单</p>
       </div>

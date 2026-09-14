@@ -1,8 +1,8 @@
-# JT-Hub · 作业/毕设需求对接平台
+# 极拓空间 · 作业/毕设需求对接平台
 
 作业/毕设需求对接与进度追踪系统。用户提交需求 → 管理员接单处理 → 全流程状态跟踪 + 积分激励 + 商品/转盘营销体系。
 
-> 本仓库为 `ai-jthub` 的后端重构版本：借鉴 [ruoyi-vue-pro（芋道）](https://github.com/YunaiV/ruoyi-vue-pro) 的工程化思想，**保留 Node.js 技术栈不变**，重构为「业务域模块化 + 分层清晰 + 统一错误处理」的架构。详见 [`docs/refactor-plan.md`](docs/refactor-plan.md) 与 [`REFACTOR_LOG.md`](REFACTOR_LOG.md)。
+> 本仓库为 `ai-jituo` 的后端重构版本：借鉴 [ruoyi-vue-pro（芋道）](https://github.com/YunaiV/ruoyi-vue-pro) 的工程化思想，**保留 Node.js 技术栈不变**，重构为「业务域模块化 + 分层清晰 + 统一错误处理」的架构。详见 [`docs/refactor-plan.md`](docs/refactor-plan.md) 与 [`REFACTOR_LOG.md`](REFACTOR_LOG.md)。
 
 ---
 
@@ -127,7 +127,7 @@ pnpm --filter backend db:seed      # 种子数据（如有）
 
 ```bash
 pnpm dev:backend                          # 后端 → http://localhost:3000
-pnpm --filter jthub-frontend dev          # 用户端 → http://localhost:5175
+pnpm --filter jituo-frontend dev          # 用户端 → http://localhost:5175
 pnpm --filter admin dev                   # 管理端 → http://localhost:5174
 ```
 
