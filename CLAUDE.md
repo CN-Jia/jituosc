@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**jituo** — 作业/毕设需求对接与进度追踪系统。pnpm monorepo，三个工作区，部署在 `jituo.cc.cd`。
+**jituo** — 作业/毕设需求对接与进度追踪系统。pnpm monorepo，三个工作区，部署在 `jituo.online`。
 
 ## Essential Commands
 

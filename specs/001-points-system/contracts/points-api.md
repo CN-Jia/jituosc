@@ -14,7 +14,7 @@
 ```json
 {
   "inviteCode": "A1B2C3",
-  "inviteUrl": "https://jituo.cc.cd/register?ref=A1B2C3",
+  "inviteUrl": "https://jituo.online/register?ref=A1B2C3",
   "totalInvited": 5,
   "pendingFirst": 2,
   "completedFirst": 3

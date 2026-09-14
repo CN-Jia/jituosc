@@ -9,7 +9,7 @@ const envSchema = z.object({
 
   // 邮件（Resend）
   RESEND_API_KEY: z.string().default(''),
-  MAIL_FROM: z.string().default('noreply@jituo.cc.cd'),
+  MAIL_FROM: z.string().default('noreply@jituo.online'),
 
   // Server酱推送（可选）
   SERVERCHAN_TOKEN: z.string().default(''),

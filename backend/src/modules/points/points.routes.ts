@@ -29,7 +29,7 @@ export async function pointsRoutes(fastify: FastifyInstance) {
 
     return reply.send(successResponse({
       inviteCode: user.inviteCode,
-      inviteUrl: `https://jituo.cc.cd/register?ref=${user.inviteCode}`,
+      inviteUrl: `https://jituo.online/register?ref=${user.inviteCode}`,
       totalInvited,
       pendingFirst: totalInvited - completedFirst,
       completedFirst,

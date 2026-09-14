@@ -12,7 +12,7 @@
 
 ### 2. 邀请码生成方案
 
-- **Decision**: 注册时为每个用户自动生成 6 位大写字母+数字随机邀请码，存入 `User.inviteCode`（唯一索引）。前端展示为 `https://jituo.cc.cd/register?ref=XXXXXX`。
+- **Decision**: 注册时为每个用户自动生成 6 位大写字母+数字随机邀请码，存入 `User.inviteCode`（唯一索引）。前端展示为 `https://jituo.online/register?ref=XXXXXX`。
 - **Rationale**: 短码易分享，唯一性由数据库唯一索引保证，冲突概率极低（36^6 ≈ 21 亿）。
 - **Alternatives considered**: UUID 截取（过长，不适合手动分享），自增数字（容易被枚举）。
 
