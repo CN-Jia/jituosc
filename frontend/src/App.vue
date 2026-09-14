@@ -17,6 +17,10 @@
             <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             首页
           </router-link>
+          <router-link to="/thesis" class="nav-link" active-class="active">
+            <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            毕设进度
+          </router-link>
           <router-link to="/activity" class="nav-link" active-class="active">
             <svg class="nav-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
             活动公告
@@ -97,6 +101,7 @@
     <Transition name="slide-down">
       <div v-if="mobileOpen" class="mobile-drawer show-sm-only">
         <router-link to="/" class="mobile-link" @click="closeMobileMenu">首页</router-link>
+        <router-link to="/thesis" class="mobile-link" @click="closeMobileMenu">🎓 毕设进度</router-link>
         <router-link to="/activity" class="mobile-link" @click="closeMobileMenu">活动公告</router-link>
         <router-link to="/forum" class="mobile-link" @click="closeMobileMenu">论坛</router-link>
         <template v-if="store.isLoggedIn">

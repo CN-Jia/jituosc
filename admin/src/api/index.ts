@@ -150,4 +150,28 @@ export const api = {
   // 活动浮窗配置
   getActivityPopup: () => http.get('/admin/activity-popup'),
   updateActivityPopup: (data: any) => http.put('/admin/activity-popup', data),
+
+  // 毕设进度管理
+  getThesisProjects: () => http.get('/admin/thesis/projects'),
+  createThesisProject: (data: any) => http.post('/admin/thesis/projects', data),
+  updateThesisProject: (id: number, data: any) => http.put(`/admin/thesis/projects/${id}`, data),
+  deleteThesisProject: (id: number) => http.delete(`/admin/thesis/projects/${id}`),
+  getThesisProject: (id: number) => http.get(`/admin/thesis/projects/${id}`),
+  addThesisProgress: (projectId: number, data: any) =>
+    http.post(`/admin/thesis/projects/${projectId}/progress`, data),
+  deleteThesisProgress: (id: number) => http.delete(`/admin/thesis/progress/${id}`),
+  uploadThesisImage: (progressId: number, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return http.post(`/admin/thesis/progress/${progressId}/images`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  deleteThesisImage: (id: number) => http.delete(`/admin/thesis/images/${id}`),
+  getThesisActivities: () => http.get('/admin/thesis/activities'),
+  createThesisActivity: (data: any) => http.post('/admin/thesis/activities', data),
+  updateThesisActivity: (id: number, data: any) => http.put(`/admin/thesis/activities/${id}`, data),
+  deleteThesisActivity: (id: number) => http.delete(`/admin/thesis/activities/${id}`),
+  getThesisNotice: () => http.get('/admin/thesis/notice'),
+  updateThesisNotice: (data: any) => http.put('/admin/thesis/notice', data),
 }

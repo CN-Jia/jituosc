@@ -80,4 +80,9 @@ export const api = {
   getLuckyWheelInfo: () => http.get('/lucky-wheel/info'),
   spinLuckyWheel: () => http.post('/lucky-wheel/spin'),
   getActivityPopup: () => http.get('/activity-popup'),
+
+  // 毕设进度查询
+  getThesisNotice: () => http.get('/thesis/site-notice'),
+  getThesisActivities: () => http.get('/thesis/activities'),
+  queryThesisProject: (data: { title: string; code: string }) => http.post('/thesis/projects/query', data),
 }

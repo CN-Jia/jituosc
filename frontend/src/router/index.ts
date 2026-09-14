@@ -6,6 +6,8 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/', component: () => import('../pages/home/index.vue') },
+    { path: '/thesis', component: () => import('../pages/thesis/index.vue') },
+    { path: '/thesis/result', component: () => import('../pages/thesis/result.vue') },
     { path: '/login', component: () => import('../pages/login/index.vue') },
     { path: '/register', component: () => import('../pages/register/index.vue') },
     { path: '/forgot-password', component: () => import('../pages/forgot-password/index.vue') },

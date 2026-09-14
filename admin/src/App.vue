@@ -139,6 +139,12 @@ const navGroups = [
     ],
   },
   {
+    label: '毕设进度',
+    items: [
+      { path: '/thesis', label: '进度管理', icon: 'Reading' },
+    ],
+  },
+  {
     label: '积分系统',
     items: [
       { path: '/points',        label: '积分规则', icon: 'Coin' },
@@ -173,6 +179,7 @@ const titleMap: Record<string, string> = {
   '/points/redeem': '兑换审核',
   '/lucky-wheel': '幸运转盘',
   '/users': '用户管理',
+  '/thesis': '毕设进度',
 }
 
 const pageTitle = computed(() => titleMap[route.path] ?? '极拓空间 管理后台')

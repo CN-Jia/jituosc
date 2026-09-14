@@ -611,3 +611,63 @@ model ActivityPopup {
 
   @@map("activity_popup")
 }
+
+// ==================== 毕设进度查询（整合自「毕业设计进度与活动查询」） ====================
+model ThesisProject {
+  id          Int             @id @default(autoincrement())
+  title       String          @unique
+  uniqueCode  String          @unique
+  studentName String
+  studentNo   String?
+  advisor     String?
+  major       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  progresses  ThesisProgress[]
+
+  @@map("thesis_projects")
+}
+
+model ThesisProgress {
+  id        Int                  @id @default(autoincrement())
+  projectId Int
+  project   ThesisProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  percent   Int
+  content   String?
+  createdAt DateTime             @default(now())
+  images    ThesisProgressImage[]
+
+  @@map("thesis_progresses")
+}
+
+model ThesisProgressImage {
+  id         Int            @id @default(autoincrement())
+  progressId Int
+  progress   ThesisProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  filename   String
+  url        String
+  createdAt  DateTime       @default(now())
+
+  @@map("thesis_progress_images")
+}
+
+model ThesisActivity {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("thesis_activities")
+}
+
+model SiteNotice {
+  id        Int      @id @default(autoincrement())
+  text      String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@map("site_notices")
+}

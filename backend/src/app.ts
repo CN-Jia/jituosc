@@ -7,6 +7,7 @@ import { logger } from './utils/logger.js'
 // 插件
 import jwtPlugin from './plugins/jwt.js'
 import corsPlugin from './plugins/cors.js'
+import multipartPlugin from './plugins/multipart.js'
 
 // 模块路由（按业务域聚合，见 docs/refactor-plan.md）
 import { authRoutes } from './modules/system/system.routes.js'
@@ -23,6 +24,8 @@ import { contentRoutes } from './modules/content/content.routes.js'
 import { adminContentRoutes } from './modules/content/content.admin.routes.js'
 import { marketingRoutes } from './modules/marketing/marketing.routes.js'
 import { adminMarketingRoutes } from './modules/marketing/marketing.admin.routes.js'
+import { thesisRoutes } from './modules/thesis/thesis.routes.js'
+import { adminThesisRoutes } from './modules/thesis/thesis.admin.routes.js'
 
 import { rateLimitQuery } from './middlewares/ratelimit.middleware.js'
 import { toHttpError } from './framework/errors.js'
@@ -37,6 +40,7 @@ export async function buildApp() {
 
   await app.register(corsPlugin)
   await app.register(jwtPlugin)
+  await app.register(multipartPlugin)
 
   app.get('/health', async () => ({
     ok: true,
@@ -66,6 +70,7 @@ export async function buildApp() {
     forumRoutes, adminForumRoutes,
     contentRoutes, adminContentRoutes,
     marketingRoutes, adminMarketingRoutes,
+    thesisRoutes, adminThesisRoutes,
   ]
   for (const routes of modules) {
     app.register(routes, { prefix: '/api' })
