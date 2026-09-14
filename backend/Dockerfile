@@ -1,5 +1,5 @@
-# JT-Hub Backend Dockerfile
-# 从项目根目录构建: docker build -f backend/Dockerfile -t jthub-backend .
+# 极拓空间 Backend Dockerfile
+# 从项目根目录构建: docker build -f backend/Dockerfile -t jituo-backend .
 
 FROM node:20-slim
 
