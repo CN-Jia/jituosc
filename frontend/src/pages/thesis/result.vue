@@ -110,56 +110,56 @@ function formatDate(s: string) {
 </script>
 
 <style scoped>
-.thesis-result-page { min-height: calc(100vh - var(--nav-h, 64px)); background: var(--bg, #f5f7fa); }
+.thesis-result-page { min-height: calc(100vh - var(--nav-h)); background: var(--bg); }
 .container { max-width: 880px; margin: 0 auto; padding: 24px 20px 60px; }
 .header { margin-bottom: 20px; }
 .back-btn {
   height: 40px; padding: 0 18px; font-size: 15px; cursor: pointer;
-  color: var(--text-hi, #2c3e50); background: var(--bg-panel, #fff);
-  border: 1px solid var(--border, #d8dee6); border-radius: 9px; transition: all 0.2s;
+  color: var(--text-1); background: var(--card-bg);
+  border: 1px solid var(--border); border-radius: 9px; transition: all 0.2s;
 }
 .back-btn:hover { border-color: #ff7a59; color: #ff7a59; }
 
 /* 项目信息卡片 */
 .project-card {
-  background: var(--bg-panel, #fff); border: 1px solid var(--border, transparent);
+  background: var(--card-bg); border: 1px solid var(--border);
   border-radius: 14px; padding: 28px;
   box-shadow: 0 2px 16px rgba(44, 62, 80, 0.08); margin-bottom: 28px;
 }
-.project-title { font-size: 24px; font-weight: 700; color: var(--text-hi, #2c3e50); margin-bottom: 20px; line-height: 1.4; }
+.project-title { font-size: 22px; font-weight: 800; color: var(--text-1); margin-bottom: 20px; line-height: 1.4; }
 .project-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 26px; }
-.meta-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; background: var(--bg-deep, #f7f9fb); border-radius: 9px; }
-.meta-label { font-size: 12px; color: var(--text-lo, #95a5a6); }
-.meta-value { font-size: 15px; color: var(--text-hi, #2c3e50); font-weight: 500; }
+.meta-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; background: var(--bg); border-radius: 9px; }
+.meta-label { font-size: 12px; color: var(--text-3); }
+.meta-value { font-size: 15px; color: var(--text-1); font-weight: 500; }
 
 /* 进度条 */
 .progress-block { margin-top: 4px; }
 .progress-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.progress-label { font-size: 14px; color: var(--text-lo, #7f8c8d); }
+.progress-label { font-size: 14px; color: var(--text-3); }
 .progress-percent { font-size: 22px; font-weight: 700; color: #ff7a59; }
-.progress-bar { height: 16px; background: var(--bg-deep, #eef1f4); border-radius: 999px; overflow: hidden; }
+.progress-bar { height: 16px; background: var(--bg); border-radius: 999px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #ff7a59, #ff9f43); border-radius: 999px; transition: width 0.6s ease; }
 
 /* 进度明细 */
 .section-title {
-  font-size: 22px; font-weight: 700; color: var(--text-hi, #2c3e50);
+  font-size: 20px; font-weight: 800; color: var(--text-1);
   margin-bottom: 20px; padding-left: 12px; border-left: 4px solid #ff7a59;
 }
-.hint { color: var(--text-lo, #95a5a6); text-align: center; padding: 30px 0; }
+.hint { color: var(--text-3); text-align: center; padding: 30px 0; }
 .progress-card {
-  background: var(--bg-panel, #fff); border: 1px solid var(--border, transparent);
+  background: var(--card-bg); border: 1px solid var(--border);
   border-radius: 12px; padding: 22px 24px;
   box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08); margin-bottom: 16px;
 }
 .progress-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
-.progress-card-title { font-size: 17px; font-weight: 600; color: var(--text-hi, #2c3e50); }
+.progress-card-title { font-size: 15px; font-weight: 700; color: var(--text-1); }
 .progress-card-percent { flex-shrink: 0; font-size: 15px; font-weight: 700; color: #ff7a59; }
-.progress-card-content { font-size: 15px; line-height: 1.7; color: var(--text-md, #555); white-space: pre-wrap; margin-bottom: 12px; }
-.progress-card-date { font-size: 13px; color: var(--text-lo, #95a5a6); margin-bottom: 12px; }
+.progress-card-content { font-size: 13px; line-height: 1.8; color: var(--text-2); white-space: pre-wrap; margin-bottom: 12px; }
+.progress-card-date { font-size: 13px; color: var(--text-3); margin-bottom: 12px; }
 
 /* 截图墙 */
 .image-wall { display: flex; flex-wrap: wrap; gap: 10px; }
-.image-item { width: 150px; height: 110px; overflow: hidden; border-radius: 8px; cursor: zoom-in; background: var(--bg-deep, #f0f2f5); }
+.image-item { width: 150px; height: 110px; overflow: hidden; border-radius: 8px; cursor: zoom-in; background: var(--bg); }
 .image-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.2s; }
 .image-item:hover img { transform: scale(1.06); }
 

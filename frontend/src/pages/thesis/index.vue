@@ -185,8 +185,8 @@ onMounted(() => {
 
 <style scoped>
 .thesis-page {
-  min-height: calc(100vh - var(--nav-h, 64px));
-  background: var(--bg, #f5f7fa);
+  min-height: calc(100vh - var(--nav-h));
+  background: var(--bg);
 }
 
 /* 漂浮字 marquee */
@@ -208,13 +208,13 @@ onMounted(() => {
   padding: 60px 20px;
   text-align: center;
 }
-.search-title { font-size: 38px; font-weight: 800; color: var(--text-hi, #2c3e50); margin-bottom: 12px; }
-.search-subtitle { font-size: 16px; color: var(--text-lo, #7f8c8d); margin-bottom: 32px; }
+.search-title { font-size: clamp(30px, 5vw, 44px); font-weight: 900; color: var(--text-1); margin-bottom: 12px; }
+.search-subtitle { font-size: 15px; color: var(--text-3); margin-bottom: 32px; }
 .search-box { display: flex; width: 100%; max-width: 620px; gap: 12px; }
 .search-input {
   flex: 1; height: 52px; padding: 0 18px; font-size: 16px;
-  border: 1px solid var(--border, #d8dee6); border-radius: 10px;
-  background: var(--bg-panel, #fff); color: var(--text-hi, #2c3e50);
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card-bg); color: var(--text-1);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .search-input:focus { outline: none; border-color: #ff7a59; box-shadow: 0 0 0 3px rgba(255, 122, 89, 0.15); }
@@ -229,21 +229,21 @@ onMounted(() => {
 /* 活动公告 */
 .activities-section { max-width: 880px; margin: 0 auto; padding: 20px 20px 60px; }
 .section-title {
-  font-size: 24px; font-weight: 700; color: var(--text-hi, #2c3e50);
+  font-size: 20px; font-weight: 800; color: var(--text-1);
   margin-bottom: 24px; padding-left: 12px; border-left: 4px solid #ff7a59;
 }
-.hint { color: var(--text-lo, #95a5a6); text-align: center; padding: 30px 0; }
+.hint { color: var(--text-3); text-align: center; padding: 30px 0; }
 .activity-list { display: flex; flex-direction: column; gap: 16px; }
 .activity-card {
-  background: var(--bg-panel, #fff); border: 1px solid var(--border, transparent);
+  background: var(--card-bg); border: 1px solid var(--border);
   border-radius: 12px; padding: 22px 24px;
   box-shadow: 0 2px 12px rgba(44, 62, 80, 0.08);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .activity-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(44, 62, 80, 0.12); }
-.activity-title { font-size: 18px; font-weight: 600; color: var(--text-hi, #2c3e50); margin-bottom: 8px; }
-.activity-content { font-size: 15px; line-height: 1.7; color: var(--text-md, #555); white-space: pre-wrap; margin-bottom: 12px; }
-.activity-date { font-size: 13px; color: var(--text-lo, #95a5a6); }
+.activity-title { font-size: 15px; font-weight: 700; color: var(--text-1); margin-bottom: 8px; }
+.activity-content { font-size: 13px; line-height: 1.8; color: var(--text-2); white-space: pre-wrap; margin-bottom: 12px; }
+.activity-date { font-size: 13px; color: var(--text-3); }
 
 /* 弹窗 */
 .modal-mask {
@@ -252,24 +252,24 @@ onMounted(() => {
   background: rgba(0, 0, 0, 0.5); padding: 20px;
 }
 .modal {
-  width: 100%; max-width: 360px; background: var(--bg-panel, #fff);
-  border: 1px solid var(--border, transparent);
+  width: 100%; max-width: 360px; background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 14px; padding: 28px 26px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
 }
-.modal-title { font-size: 20px; font-weight: 700; color: var(--text-hi, #2c3e50); margin-bottom: 8px; }
-.modal-desc { font-size: 14px; color: var(--text-lo, #7f8c8d); margin-bottom: 18px; }
+.modal-title { font-size: 20px; font-weight: 700; color: var(--text-1); margin-bottom: 8px; }
+.modal-desc { font-size: 14px; color: var(--text-3); margin-bottom: 18px; }
 .code-input {
   width: 100%; height: 54px; text-align: center; font-size: 24px; letter-spacing: 10px;
-  border: 1px solid var(--border, #d8dee6); border-radius: 10px;
-  background: var(--bg-deep, #fafbfc); color: var(--text-hi, #2c3e50);
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--bg); color: var(--text-1);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .code-input:focus { outline: none; border-color: #ff7a59; box-shadow: 0 0 0 3px rgba(255, 122, 89, 0.15); }
 .modal-actions { display: flex; gap: 12px; margin-top: 22px; }
 .btn { flex: 1; height: 44px; font-size: 15px; border: none; cursor: pointer; border-radius: 9px; transition: opacity 0.2s; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-cancel { background: var(--bg-deep, #eef1f4); color: var(--text-md, #555); }
+.btn-cancel { background: var(--bg); color: var(--text-2); }
 .btn-confirm { background: linear-gradient(90deg, #ff7a59, #ff9f43); color: #fff; }
 
 @media (max-width: 600px) {
