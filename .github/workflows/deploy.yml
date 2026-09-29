@@ -145,8 +145,12 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             echo ">>> Run database migration..."
+            # ⚠️ 不能用 `npx prisma migrate deploy`：容器 WORKDIR 是 /app，
+            #    而仓库根的 node_modules 里没有包（tsx/prisma 的 bin 都在 backend/node_modules/.bin），
+            #    npx 会解析不到本地 prisma，转而去下载最新版，再因找不到 ./prisma/schema.prisma 失败。
+            #    用 pnpm workspace 在 backend 包目录内执行，才能命中 backend/prisma/schema.prisma。
             docker compose -f docker-compose.prod.yml exec -T backend \
-              npx prisma migrate deploy
+              pnpm --filter backend exec prisma migrate deploy
 
             echo ">>> Prune old images..."
             docker image prune -af

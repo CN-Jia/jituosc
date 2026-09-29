@@ -27,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-      target: build   # 用 build 阶段（含 tsx），方便热重载
+      target: dev   # 对应 backend/Dockerfile 的 dev 阶段（含 tsx，供热重载）
     container_name: jituo-backend-dev
     restart: unless-stopped
     ports:
@@ -51,7 +51,9 @@ services:
       ADMIN_PASSWORD_HASH: $2b$10$PLACEHOLDER
       ADMIN_WECHAT_ID: Jt--04
       APP_BASE_URL: http://localhost:3000
-    command: ["npx", "tsx", "watch", "backend/src/app.ts"]
+    # 必须用 pnpm 跑包脚本：tsx 的可执行文件在 backend/node_modules/.bin，
+    # 根的 node_modules 里没有包，直接 `npx tsx` 会解析失败。
+    command: ["pnpm", "--filter", "backend", "dev"]
 
 volumes:
   pgdata_dev:
