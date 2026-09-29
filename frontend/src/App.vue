@@ -56,24 +56,6 @@
         </div>
 
         <div class="nav-right">
-          <!-- 主题切换按钮 -->
-          <button class="theme-toggle" :title="isDark ? '切换亮色' : '切换暗色'" @click="toggleTheme">
-            <svg v-if="isDark" class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-            </svg>
-            <svg v-else class="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-          </button>
-
           <template v-if="!store.isLoggedIn">
             <router-link to="/login" class="nav-login hide-sm">登录</router-link>
             <router-link to="/register" class="nav-register hide-sm">免费注册</router-link>
@@ -116,10 +98,6 @@
           <router-link to="/login" class="mobile-link" @click="closeMobileMenu">登录</router-link>
           <router-link to="/register" class="mobile-link mobile-register" @click="closeMobileMenu">注册账号</router-link>
         </template>
-        <!-- 移动端主题切换 -->
-        <button class="mobile-link mobile-theme" @click="toggleTheme; closeMobileMenu()">
-          {{ isDark ? '☀️ 切换亮色模式' : '🌙 切换暗色模式' }}
-        </button>
       </div>
     </Transition>
 
@@ -204,27 +182,12 @@ const uptimeStr = ref('')
 const cursorCvs = ref<HTMLCanvasElement | null>(null)
 const adminWechat = ref('Jt--04')
 
-/* ── 主题管理 ── */
-const isDark = ref(false)
-
-function applyTheme(dark: boolean) {
-  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
-  localStorage.setItem('theme', dark ? 'dark' : 'light')
-}
-
-function toggleTheme() {
-  isDark.value = !isDark.value
-  applyTheme(isDark.value)
-}
-
-function initTheme() {
-  const saved = localStorage.getItem('theme')
-  if (saved) {
-    isDark.value = saved === 'dark'
-  } else {
-    isDark.value = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-  }
-  applyTheme(isDark.value)
+/* ── 主题：只保留深色（原明暗切换已移除）──
+   设计稿只提供深色版本；这里统一强制 data-theme=dark，
+   并清掉历史遗留的亮色偏好，避免老用户浏览器里存的 'light' 把主题切回亮色。 */
+function applyDarkTheme() {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  localStorage.removeItem('theme')
 }
 
 /* ── 运行时长 ── */
@@ -355,7 +318,7 @@ function initCursorParticles() {
 let cleanupCursor: (() => void) | undefined
 
 onMounted(() => {
-  initTheme()
+  applyDarkTheme()
   window.addEventListener('scroll', onScroll, { passive: true })
   fetchUptime()
   uptimeTimer = setInterval(fetchUptime, 60_000)
@@ -519,26 +482,6 @@ function handleSubmit() {
 /* 右侧区域 */
 .nav-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 8px; }
 
-/* 主题切换按钮 */
-.theme-toggle {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: none; border: 1.5px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text-2);
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.theme-toggle:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
-.theme-icon { width: 16px; height: 16px; }
-.navbar.transparent .theme-toggle {
-  border-color: rgba(255,255,255,0.15);
-  color: rgba(255,255,255,0.7);
-}
-.navbar.transparent .theme-toggle:hover {
-  border-color: rgba(255,255,255,0.4);
-  color: #fff;
-  background: rgba(255,255,255,0.08);
-}
 
 /* 登录按钮 */
 .nav-login {
@@ -645,7 +588,6 @@ function handleSubmit() {
 .mobile-link:hover, .mobile-link:active { background: var(--primary-light); color: var(--primary); }
 .mobile-logout { color: var(--danger); }
 .mobile-register { color: var(--primary); font-weight: 700; }
-.mobile-theme { color: var(--text-3); }
 
 .slide-down-enter-active, .slide-down-leave-active { transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-12px); }

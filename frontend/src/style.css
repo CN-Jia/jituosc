@@ -107,7 +107,7 @@ body {
 }
 
 /* 全局背景 — 与首页设计稿一致：点阵 + 200px 扫描网格
-   （浅色主题保持干净无图案，见下方 [data-theme="light"] 覆盖） */
+   （深色/浅色都生效；浅色下同一套低对比参数，不抢内容） */
 body {
   background-color: var(--bg);
   background-image:
@@ -117,9 +117,6 @@ body {
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 40px 40px, 80px 80px, 200px 200px, 200px 200px;
   background-position: 0 0, 20px 20px, 0 0, 0 0;
-}
-[data-theme="light"] body {
-  background-image: none;
 }
 
 button { cursor: pointer; font-family: inherit; }

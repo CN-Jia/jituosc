@@ -9,8 +9,10 @@ import './assets/theme.css'
 import App from './App.vue'
 import router from './router'
 
-// 主题由 useTheme composable 管理，不在此强制设置
-// document.documentElement.classList.add('dark')
+// 管理端只保留深色主题（原明暗切换已移除）
+// 一并清掉历史遗留的主题偏好，避免老浏览器里存的值造成不一致
+localStorage.removeItem('jituo-admin-theme')
+document.documentElement.classList.add('dark')
 
 const app = createApp(App)
 

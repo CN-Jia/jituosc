@@ -74,11 +74,6 @@
         <div class="tb-right">
           <!-- 通知铃铛 -->
           <NotificationBell />
-          <!-- 主题切换按钮 -->
-          <button class="theme-btn" @click="toggle" :title="isDark ? '切换到亮色' : '切换到暗色'">
-            <el-icon v-if="isDark"><Sunny /></el-icon>
-            <el-icon v-else><Moon /></el-icon>
-          </button>
           <div class="tb-divider" />
           <span class="tb-dot online" />
           <span class="tb-dot-label desktop-only">在线</span>
@@ -103,14 +98,12 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAdminStore } from './store/admin'
-import { useTheme } from './composables/useTheme'
 import JtLogo from './components/JtLogo.vue'
 import NotificationBell from './components/NotificationBell.vue'
 
 const router = useRouter()
 const route = useRoute()
 const store = useAdminStore()
-const { isDark, toggle } = useTheme()
 
 const collapsed = ref(false)
 const mobileOpen = ref(false)
@@ -371,20 +364,6 @@ html.dark .tb-dot { box-shadow: 0 0 8px var(--success); }
 .tb-dot-label { font-size: 12px; color: var(--success); }
 .tb-divider { width: 1px; height: 18px; background: var(--border); }
 .tb-admin { font-size: 13px; color: var(--text-md); }
-
-/* 主题切换按钮 */
-.theme-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-md);
-  cursor: pointer;
-  font-size: 16px;
-  transition: all 0.18s;
-}
-.theme-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .tb-logout {
   display: flex; align-items: center; gap: 5px;

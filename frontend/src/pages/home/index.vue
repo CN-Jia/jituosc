@@ -44,6 +44,15 @@
           </template>
         </div>
 
+        <!-- 代码装饰条（呼应「极 · 创代码」） -->
+        <div class="hero-code" :class="{ visible: heroVis }">
+          <span class="code-dots"><i /><i /><i /></span>
+          <span class="code-line">
+            <span class="k">const</span> future = <span class="k">await</span> jituo.build({ 需求: <span class="s">'你的作业'</span> })
+            <span class="c">// 提交需求 → 报价确认 → 开发交付</span>
+          </span>
+        </div>
+
         <!-- 统计数据（玻璃 HUD 卡片，与设计稿一致） -->
         <div class="hero-stats" :class="{ visible: heroVis }">
           <div class="stat-item">
@@ -1213,6 +1222,34 @@ onUnmounted(() => {
   color: var(--text-3); -webkit-text-fill-color: var(--text-3);
 }
 .stat-label { color: var(--text-2); font-size: 13px; letter-spacing: 0; text-transform: none; }
+
+/* ── Hero 代码装饰条（呼应「极 · 创代码」）── */
+.hero-code {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; max-width: 640px; margin: 30px auto 0;
+  padding: 14px 18px; border-radius: var(--radius);
+  background: rgba(2, 6, 23, 0.70);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-code.visible { opacity: 1; transform: none; transition-delay: 0.46s; }
+.code-dots { display: flex; gap: 6px; flex-shrink: 0; }
+.code-dots i { display: block; width: 9px; height: 9px; border-radius: 50%; }
+.code-dots i:nth-child(1) { background: var(--danger); }
+.code-dots i:nth-child(2) { background: var(--warning); }
+.code-dots i:nth-child(3) { background: var(--success); }
+.code-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  font-size: 12.5px; color: #93c5fd;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-transform: none;   /* 代码大小写敏感，切勿继承大写转换 */
+}
+.code-line .k { color: #c084fc; }
+.code-line .s { color: #86efac; }
+.code-line .c { color: var(--text-3); }
 
 /* ── 01 价格参考（玻璃行）── */
 .price-section { border-bottom: 1px solid var(--border); }
