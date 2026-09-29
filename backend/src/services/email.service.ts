@@ -3,6 +3,18 @@ import { env } from '../config/env.js'
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 
+/**
+ * Resend SDK v4 把 API 错误放在返回值的 error 字段里、**不抛异常**。
+ * 只 await 不检查返回值 → 发信失败会被伪装成成功（线上实测：Resend 返回 422，接口仍返回 200「验证码已发送」，
+ * 用户永远等不到验证码，运维也查不出原因）。所以这里统一把 error 转成异常。
+ */
+export function assertSendOk(result: { error?: { message?: string; name?: string } | null } | undefined | null): void {
+  const error = result?.error
+  if (error) {
+    throw new Error(`邮件服务返回错误：${error.message ?? error.name ?? '未知错误'}`)
+  }
+}
+
 /** 发送邮箱验证码 */
 export async function sendVerifyCode(email: string, code: string): Promise<void> {
   if (!resend) {
@@ -11,7 +23,7 @@ export async function sendVerifyCode(email: string, code: string): Promise<void>
     return
   }
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: env.MAIL_FROM,
     to: email,
     subject: '【极拓空间】邮箱验证码',
@@ -27,6 +39,7 @@ export async function sendVerifyCode(email: string, code: string): Promise<void>
       </div>
     `,
   })
+  assertSendOk(result)
 }
 
 /** 发送密码重置验证码 */
@@ -36,7 +49,7 @@ export async function sendResetCode(email: string, code: string): Promise<void> 
     return
   }
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: env.MAIL_FROM,
     to: email,
     subject: '【极拓空间】密码重置验证码',
@@ -52,6 +65,7 @@ export async function sendResetCode(email: string, code: string): Promise<void> 
       </div>
     `,
   })
+  assertSendOk(result)
 }
 
 /** 发送管理员回复反馈通知 */
@@ -61,7 +75,7 @@ export async function sendFeedbackReply(email: string, title: string, reply: str
     return
   }
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: env.MAIL_FROM,
     to: email,
     subject: '【极拓空间】您的反馈已收到回复',
@@ -76,4 +90,5 @@ export async function sendFeedbackReply(email: string, title: string, reply: str
       </div>
     `,
   })
+  assertSendOk(result)
 }

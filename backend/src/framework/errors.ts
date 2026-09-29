@@ -48,6 +48,16 @@ const HTTP_STATUS_TO_CODE: Record<number, string> = {
   429: ERROR_CODES.RATE_LIMITED,
 }
 
+/** Fastify 框架级错误码 → 对外友好文案（不要把 FST_ERR_xxx 这种内部码透给调用方） */
+const FRAMEWORK_ERROR_MESSAGES: Record<string, string> = {
+  FST_ERR_CTP_INVALID_JSON_BODY: '请求体不是合法的 JSON',
+  FST_ERR_CTP_EMPTY_JSON_BODY: '请求体不能为空',
+  FST_ERR_CTP_INVALID_MEDIA_TYPE: '不支持的 Content-Type',
+  FST_ERR_CTP_BODY_TOO_LARGE: '请求体过大',
+  FST_ERR_VALIDATION: '请求参数不合法',
+  FST_ERR_NOT_FOUND: '接口不存在',
+}
+
 /**
  * 从任意未知错误提取「可对外返回」的信息。
  * 用于全局错误处理器：业务错误取 code/message，框架错误保留其 4xx，未知错误统一 INTERNAL_ERROR。
@@ -56,6 +66,24 @@ export function toHttpError(err: unknown): HttpError {
   if (err instanceof HttpError) return err
 
   const maybe = err as { code?: unknown; message?: string; statusCode?: unknown } | null
+
+  // 框架/插件抛出的 FST_ERR_* 错误（如 JSON 解析失败）自带 4xx 状态码，
+  // 必须优先识别：否则会被下面的「大写业务码」分支当成业务码带出去，
+  // 调用方会收到 FST_ERR_CTP_INVALID_JSON_BODY 这种内部码（线上旧版本更是直接变成 500）。
+  if (maybe && typeof maybe.code === 'string' && maybe.code.startsWith('FST_ERR_')) {
+    const status = typeof maybe.statusCode === 'number' && maybe.statusCode >= 400 && maybe.statusCode < 500
+      ? maybe.statusCode
+      : 400
+    const code = HTTP_STATUS_TO_CODE[status] ?? ERROR_CODES.VALIDATION_ERROR
+    const message = FRAMEWORK_ERROR_MESSAGES[maybe.code] ?? '请求不合法'
+    return new HttpError(code, message, status)
+  }
+
+  // 请求体 JSON 解析失败：Fastify 4 会抛一个 SyntaxError（部分版本带 statusCode=400、无 code），
+  // 直接透传会把 "Expected property name or '}' in JSON at position 1" 这种内部信息给到调用方。
+  if (err instanceof SyntaxError || (maybe && (maybe as { name?: string }).name === 'SyntaxError')) {
+    return new HttpError(ERROR_CODES.VALIDATION_ERROR, '请求体不是合法的 JSON', 400)
+  }
 
   // 兼容旧代码里 throw Object.assign(new Error(code), { code, message }) 的写法（大写业务码）
   if (maybe && typeof maybe.code === 'string' && /^[A-Z][A-Z_]+$/.test(maybe.code)) {

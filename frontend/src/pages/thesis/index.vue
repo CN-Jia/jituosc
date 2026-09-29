@@ -97,7 +97,10 @@ const loadingActivities = ref(false)
 async function fetchNotice() {
   try {
     const res: any = await api.getThesisNotice()
-    const notice = res.data
+    // 兼容两种响应形状：统一包装 { success, data } 与裸结构 { text, enabled }。
+    // 线上实测：后端 thesis 接口返回的是裸结构，而这里原来只读 res.data → notice 恒为 undefined，
+    // 结果公告漂浮字永远不显示。
+    const notice = res?.data ?? res
     if (notice && notice.enabled && notice.text) {
       noticeText.value = notice.text
       noticeVisible.value = true
@@ -111,7 +114,9 @@ async function fetchActivities() {
   loadingActivities.value = true
   try {
     const res: any = await api.getThesisActivities()
-    activities.value = res.data?.activities || []
+    // 同上：后端返回 { activities: [...] }，原来读 res.data?.activities 永远是空数组，
+    // 页面就一直显示「暂无活动公告」（库里其实有 4 条已发布活动）。
+    activities.value = res?.data?.activities ?? res?.activities ?? []
   } catch {
     activities.value = []
   } finally {

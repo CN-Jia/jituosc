@@ -31,7 +31,7 @@ import { adminThesisRoutes } from './modules/thesis/thesis.admin.routes.js'
 
 import { rateLimitQuery } from './middlewares/ratelimit.middleware.js'
 import { toHttpError } from './framework/errors.js'
-import { errorResponse } from './framework/response.js'
+import { errorResponse, ERROR_CODES } from './framework/response.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -87,6 +87,13 @@ export async function buildApp() {
       app.log.error(error)
     }
     reply.code(httpError.statusCode).send(errorResponse(httpError.code, httpError.message))
+  })
+
+  // 404 也用同一套响应结构：否则未知路由返回的是 Fastify 默认的
+  // { message, error, statusCode }，与其它接口的 { success:false, error:{ code, message } } 不一致，
+  // 前端拦截器要写两套解析逻辑。
+  app.setNotFoundHandler((request, reply) => {
+    reply.code(404).send(errorResponse(ERROR_CODES.NOT_FOUND, `接口不存在：${request.method} ${request.url}`))
   })
 
   return app

@@ -533,6 +533,8 @@ model PaymentConfig {
 enum AdminNotifyType {
   ORDER_PAID
   ORDER_CANCELLED
+  /// 新增需求订单（用户提交需求时写入，保证管理端铃铛一定有提醒）
+  NEW_ORDER
 }
 
 model AdminNotification {

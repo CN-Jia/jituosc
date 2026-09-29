@@ -21,7 +21,7 @@
           </span>
         </div>
         <h1 class="hero-title" :class="{ visible: heroVis }">
-          极 · 创代码，<br /><span class="grad-text">拓 · 见未来</span>
+          极 · 创代码<br /><span class="grad-text">拓 · 见未来</span>
         </h1>
         <p class="hero-sub" :class="{ visible: heroVis }">你的全栈技术外包与作业协助专家</p>
         <p class="hero-tagline" :class="{ visible: heroVis }">

@@ -10,6 +10,7 @@ import { sendVerifyCode } from '../../services/email.service.js'
 import { successResponse, errorResponse, ERROR_CODES } from '../../framework/response.js'
 import { verifyJWT } from '../../middlewares/auth.middleware.js'
 import { env } from '../../config/env.js'
+import { logger } from '../../utils/logger.js'
 import { generateInviteCode, awardPoints } from '../points/points.service.js'
 
 export async function authRoutes(fastify: FastifyInstance) {
@@ -32,12 +33,18 @@ export async function authRoutes(fastify: FastifyInstance) {
     const code = String(crypto.randomInt(100000, 999999))
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
 
-    await prisma.emailVerification.create({ data: { email, code, expiresAt } })
+    const record = await prisma.emailVerification.create({ data: { email, code, expiresAt } })
 
     try {
       await sendVerifyCode(email, code)
-    } catch {
-      return reply.code(500).send(errorResponse(ERROR_CODES.INTERNAL_ERROR, '邮件发送失败，请稍后重试'))
+    } catch (err) {
+      // 发送失败就让这条验证码失效：否则用户被 60 秒限流窗口卡住，却又永远收不到码
+      // （线上实测过：Resend 返回 422，接口却回 200「验证码已发送」）
+      await prisma.emailVerification.delete({ where: { id: record.id } }).catch(() => {})
+      logger.error({ err, email }, '验证码邮件发送失败')
+      return reply
+        .code(500)
+        .send(errorResponse(ERROR_CODES.INTERNAL_ERROR, '验证码邮件发送失败，请稍后重试或联系管理员微信'))
     }
 
     return reply.send(successResponse({ message: '验证码已发送' }))
@@ -174,14 +181,30 @@ export async function authRoutes(fastify: FastifyInstance) {
   // ── 更新个人资料 ─────────────────────────────────────────────
   fastify.put('/auth/profile', { preHandler: [verifyJWT] }, async (request, reply) => {
     const { userId } = request.user as { userId: string }
+    // 空字符串一律视为「未设置」。前端资料页在用户没填手机号/年级时会提交 ''（年级下拉还有一项就叫「不设置」），
+    // 直接用 enum/regex 校验会返回笼统的「参数错误」，导致这个选项永远存不上（线上已复现）。
+    const blankToNull = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v)
     const schema = z.object({
-      nickname: z.string().min(2).max(20).optional(),
-      phone: z.string().regex(/^1[3-9]\d{9}$/).optional(),
-      wechatId: z.string().min(1).optional(),
-      grade: z.enum(['FRESHMAN', 'SOPHOMORE', 'JUNIOR']).optional(),
+      nickname: z.string().min(2, '昵称至少 2 个字').max(20, '昵称最多 20 个字').optional(),
+      phone: z
+        .preprocess(blankToNull, z.string().regex(/^1[3-9]\d{9}$/, '手机号格式不正确').nullable().optional()),
+      wechatId: z
+        .preprocess(blankToNull, z.string().min(1, '微信号不能为空').max(100, '微信号过长').nullable().optional()),
+      grade: z
+        .preprocess(
+          blankToNull,
+          z.enum(['FRESHMAN', 'SOPHOMORE', 'JUNIOR'], { errorMap: () => ({ message: '年级取值不合法' }) })
+            .nullable()
+            .optional(),
+        ),
     })
     const parse = schema.safeParse(request.body)
-    if (!parse.success) return reply.code(400).send(errorResponse(ERROR_CODES.VALIDATION_ERROR, '参数错误'))
+    if (!parse.success) {
+      // 返回具体哪个字段不合法，而不是一句「参数错误」
+      return reply
+        .code(400)
+        .send(errorResponse(ERROR_CODES.VALIDATION_ERROR, parse.error.errors[0]?.message ?? '参数错误'))
+    }
 
     const user = await prisma.user.update({ where: { id: userId }, data: parse.data })
     return reply.send(successResponse({ nickname: user.nickname, phone: user.phone, wechatId: user.wechatId, grade: user.grade }))

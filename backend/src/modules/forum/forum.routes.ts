@@ -4,13 +4,22 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma.js'
 import { successResponse, errorResponse, ERROR_CODES } from '../../framework/response.js'
+import { parseDto } from '../../framework/validation.js'
 import { verifyJWT } from '../../middlewares/auth.middleware.js'
+
+// 分页参数必须校验：线上实测 `?page=0&limit=9999` 会算出 skip=-1 直接把 Prisma 打成 500，
+// 而且没有上限时一个请求就能拖垮数据库。
+const listQuerySchema = z.object({
+  page: z.coerce.number().int('page 必须是整数').min(1, 'page 不能小于 1').default(1),
+  pageSize: z.coerce.number().int('pageSize 必须是整数').min(1, 'pageSize 不能小于 1').max(50, 'pageSize 不能超过 50').default(10),
+  board: z.enum(['announcement', 'service', 'faq', 'exchange']).optional(),
+})
 
 export async function forumRoutes(fastify: FastifyInstance) {
   fastify.get('/posts', async (request, reply) => {
-    const { page = '1', pageSize = '10', board } = request.query as Record<string, string>
+    const { page, pageSize, board } = parseDto(listQuerySchema, request.query)
     const where: any = { status: 'APPROVED' }
-    if (board && ['announcement', 'service', 'faq', 'exchange'].includes(board)) {
+    if (board) {
       where.board = board
     }
 
@@ -21,8 +30,8 @@ export async function forumRoutes(fastify: FastifyInstance) {
           { isPinned: 'desc' },
           { createdAt: 'desc' },
         ],
-        skip: (Number(page) - 1) * Number(pageSize),
-        take: Number(pageSize),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
         select: {
           id: true, title: true, summary: true, cover: true,
           isPinned: true, createdAt: true,
@@ -32,7 +41,7 @@ export async function forumRoutes(fastify: FastifyInstance) {
       }),
       prisma.post.count({ where }),
     ])
-    return reply.send(successResponse({ list, total, page: Number(page), pageSize: Number(pageSize) }))
+    return reply.send(successResponse({ list, total, page, pageSize }))
   })
 
   fastify.get('/posts/:id', async (request, reply) => {
@@ -86,8 +95,13 @@ export async function forumRoutes(fastify: FastifyInstance) {
       return reply.code(403).send(errorResponse(ERROR_CODES.FORBIDDEN, '请先完成邮箱验证'))
     }
 
-    const post = await prisma.post.findFirst({ where: { id: postId, status: 'APPROVED' } })
-    if (!post) return reply.code(404).send(errorResponse(ERROR_CODES.VALIDATION_ERROR, '帖子不存在'))
+    // 区分「帖子不存在」和「帖子还没过审」：原来一律 404「帖子不存在」，
+    // 作者刚发完帖就评论自己会被这句话误导（帖子其实是存在的，只是在审核队列里）。
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { status: true } })
+    if (!post) return reply.code(404).send(errorResponse(ERROR_CODES.NOT_FOUND, '帖子不存在'))
+    if (post.status !== 'APPROVED') {
+      return reply.code(403).send(errorResponse(ERROR_CODES.FORBIDDEN, '帖子还在审核中，通过后才能评论'))
+    }
 
     const schema = z.object({ content: z.string().min(1).max(1000) })
     const parse = schema.safeParse(request.body)
