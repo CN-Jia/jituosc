@@ -199,6 +199,22 @@ function handleLogout() {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #app { height: 100%; }
 body { background: var(--bg-deep); transition: background 0.25s; }
+
+/* ══ 全局背景：与用户端首页设计稿统一（点阵 + 200px 扫描网格，仅暗色）══
+   注意 .al 与 .page-body 各自有不透明背景，会盖住 body 的图案，
+   因此图案要打在真正可见的那两层上。 */
+html.dark body,
+html.dark .al,
+html.dark .page-body {
+  background-color: var(--bg-deep);
+  background-image:
+    radial-gradient(rgba(0,212,255,0.05) 1px, transparent 1px),
+    radial-gradient(rgba(148,163,184,0.028) 1px, transparent 1px),
+    linear-gradient(rgba(0,212,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.045) 1px, transparent 1px);
+  background-size: 40px 40px, 80px 80px, 200px 200px, 200px 200px;
+  background-position: 0 0, 20px 20px, 0 0, 0 0;
+}
 </style>
 
 <style scoped>

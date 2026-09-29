@@ -110,12 +110,16 @@ async function handleLogin() {
   transition: background 0.25s;
 }
 
-/* dot-grid background */
+/* dot-grid + 200px 扫描网格（与用户端首页设计稿统一） */
 .lp-grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle at 1.5px 1.5px, rgba(0,212,255,0.06) 1.5px, transparent 0);
-  background-size: 28px 28px;
+  background-image:
+    radial-gradient(circle at 1.5px 1.5px, rgba(0,212,255,0.06) 1.5px, transparent 0),
+    linear-gradient(rgba(0,212,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.045) 1px, transparent 1px);
+  background-size: 28px 28px, 200px 200px, 200px 200px;
+  background-position: 0 0, 0 0, 0 0;
   pointer-events: none;
 }
 

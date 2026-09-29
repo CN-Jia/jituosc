@@ -21,9 +21,12 @@
           </span>
         </div>
         <h1 class="hero-title" :class="{ visible: heroVis }">
-          让学业<br /><span class="grad-text">不再是负担</span>
+          极 · 创代码，<br /><span class="grad-text">拓 · 见未来</span>
         </h1>
-        <p class="hero-sub" :class="{ visible: heroVis }">期末作业、日常作业、毕业设计，一站式搞定</p>
+        <p class="hero-sub" :class="{ visible: heroVis }">你的全栈技术外包与作业协助专家</p>
+        <p class="hero-tagline" :class="{ visible: heroVis }">
+          复杂交给我，<span class="u">上岸留给你</span>。
+        </p>
         <div class="hero-actions" :class="{ visible: heroVis }">
           <template v-if="store.isLoggedIn">
             <router-link to="/submit" class="btn-hero-primary">
@@ -41,50 +44,23 @@
           </template>
         </div>
 
-        <!-- 统计数据 -->
+        <!-- 统计数据（玻璃 HUD 卡片，与设计稿一致） -->
         <div class="hero-stats" :class="{ visible: heroVis }">
           <div class="stat-item">
             <span class="stat-num">{{ counters[0] }}<em>h</em></span>
             <span class="stat-label">快速响应</span>
           </div>
-          <div class="stat-divider" />
           <div class="stat-item">
             <span class="stat-num">{{ counters[1] }}<em>%</em></span>
             <span class="stat-label">价格透明</span>
           </div>
-          <div class="stat-divider" />
           <div class="stat-item">
             <span class="stat-num">7<em>×24</em></span>
             <span class="stat-label">全天在线</span>
           </div>
-          <div class="stat-divider" />
           <div class="stat-item">
             <span class="stat-num">{{ counters[2] }}<em>+</em></span>
             <span class="stat-label">完成案例</span>
-          </div>
-        </div>
-
-        <!-- 价格参考（紧凑，嵌于 Hero） -->
-        <div class="hero-price" :class="{ visible: heroVis }">
-          <div class="hero-price-head">
-            <span class="hero-price-title">价格参考</span>
-            <span class="hero-price-hint">最终报价以管理员确认为准</span>
-          </div>
-          <div v-if="loadingTypes" class="hero-price-skeleton">
-            <div class="hero-skel-line" v-for="i in 3" :key="i" />
-          </div>
-          <div v-else class="hero-price-rows">
-            <div v-for="(t, i) in orderTypes" :key="t.id"
-              class="hero-price-row" @click="goSubmitWithType(t.id)">
-              <div class="hero-price-left">
-                <span class="hero-price-idx">{{ i + 1 }}</span>
-                <span class="hero-price-name">{{ t.name }}</span>
-              </div>
-              <div class="hero-price-right">
-                <span class="hero-price-tag">{{ t.price }}</span>
-                <svg class="hero-price-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -98,14 +74,48 @@
       </div>
     </section>
 
+    <!-- ══════════ 01 价格参考 ══════════ -->
+    <section class="block price-section">
+      <div class="section-wrap">
+        <div class="sec-header reveal">
+          <div class="sec-head-main">
+            <span class="sec-tag">01 / 价格参考</span>
+            <h2 class="sec-title">价格参考</h2>
+          </div>
+          <span class="sec-meta">TRANSPARENT PRICING</span>
+        </div>
+
+        <div v-if="loadingTypes" class="price-skeleton">
+          <div class="hero-skel-line" v-for="i in 3" :key="i" />
+        </div>
+        <div v-else class="price-list">
+          <div v-for="(t, i) in orderTypes" :key="t.id"
+            class="price-row reveal" :style="`--delay:${i * 70}ms`"
+            @click="goSubmitWithType(t.id)">
+            <span class="price-idx">{{ String(i + 1).padStart(2, '0') }}</span>
+            <span class="price-main">
+              <span class="price-name">{{ t.name }}</span>
+              <span v-if="t.description" class="price-desc">{{ t.description }}</span>
+            </span>
+            <span class="price-tag">{{ t.price }}</span>
+            <span class="price-go">→</span>
+          </div>
+        </div>
+        <p class="price-note">最终报价以管理员确认为准 · 先报价再付款，无隐藏收费</p>
+      </div>
+    </section>
+
     <!-- ══════════ 特性卡片 ══════════ -->
     <section class="features-section">
       <div class="section-wrap">
         <div class="sec-header reveal">
-          <span class="sec-tag">为什么选择我们</span>
-          <h2 class="sec-title">专注品质，服务优先</h2>
-          <p class="sec-desc">我们用专业和诚意，守护每一份信任</p>
+          <div class="sec-head-main">
+            <span class="sec-tag">02 / 为什么选择我们</span>
+            <h2 class="sec-title">专注品质，服务优先</h2>
+          </div>
+          <span class="sec-meta">WHY US</span>
         </div>
+        <p class="sec-desc reveal">我们用专业和诚意，守护每一份信任。</p>
         <div class="features-grid">
           <div v-for="(f, i) in features" :key="i"
             class="feat-card reveal" :style="`--delay:${i * 100}ms`">
@@ -121,12 +131,55 @@
       </div>
     </section>
 
+    <!-- ══════════ 03 服务流程 ══════════ -->
+    <section class="block steps-section">
+      <div class="section-wrap">
+        <div class="sec-header reveal">
+          <div class="sec-head-main">
+            <span class="sec-tag">03 / 服务流程</span>
+            <h2 class="sec-title">服务流程</h2>
+          </div>
+          <span class="sec-meta">WORKFLOW</span>
+        </div>
+
+        <div class="steps">
+          <div class="step reveal">
+            <span class="step-node" />
+            <div class="step-no">STEP 01</div>
+            <h3 class="step-title">提交需求</h3>
+            <p class="step-desc">填写课程、类型、年级与截止日期，可附要求说明。</p>
+          </div>
+          <div class="step reveal" :style="'--delay:80ms'">
+            <span class="step-node" />
+            <div class="step-no">STEP 02</div>
+            <h3 class="step-title">确认报价</h3>
+            <p class="step-desc">管理员评估工作量后给出报价，确认无误再开工。</p>
+          </div>
+          <div class="step reveal" :style="'--delay:160ms'">
+            <span class="step-node" />
+            <div class="step-no">STEP 03</div>
+            <h3 class="step-title">开发实现</h3>
+            <p class="step-desc">按节点推进并在订单内更新进度，交付前可提出修改。</p>
+          </div>
+          <div class="step reveal" :style="'--delay:240ms'">
+            <span class="step-node" />
+            <div class="step-no">STEP 04</div>
+            <h3 class="step-title">交付验收</h3>
+            <p class="step-desc">交付源码与文档，验收完成后订单归档，长期可查。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ══════════ 作品轮播 ══════════ -->
     <section v-if="carousel.length" class="showcase-section">
       <div class="section-wrap">
         <div class="sec-header reveal">
-          <span class="sec-tag">历代作品</span>
-          <h2 class="sec-title">真实完成案例，品质有目共睹</h2>
+          <div class="sec-head-main">
+            <span class="sec-tag">04 / 历代作品</span>
+            <h2 class="sec-title">真实完成案例，品质有目共睹</h2>
+          </div>
+          <span class="sec-meta">SELECTED WORKS</span>
         </div>
         <div class="showcase-track">
           <div class="carousel-slide reveal" v-for="(item, i) in carousel" :key="item.id"
@@ -153,9 +206,12 @@
     <div class="page-body hide-on-mobile">
       <!-- 最新动态 -->
       <section class="section reveal" v-if="activities.length || loadingActivities">
-        <div class="section-head">
-          <h2 class="section-title">最新动态</h2>
-          <span class="section-count" v-if="activities.length">{{ activities.length }} 条</span>
+        <div class="sec-header reveal">
+          <div class="sec-head-main">
+            <span class="sec-tag">05 / 最新动态</span>
+            <h2 class="sec-title">最新动态</h2>
+          </div>
+          <span class="sec-meta" v-if="activities.length">{{ activities.length }} 条</span>
         </div>
         <div v-if="loadingActivities" class="skeleton-grid">
           <div class="skeleton-card" v-for="i in 3" :key="i" />
@@ -172,6 +228,30 @@
       </section>
 
     </div>
+
+    <!-- ══════════ 结尾 CTA ══════════ -->
+    <section class="cta-section">
+      <div class="section-wrap">
+        <div class="cta-card reveal">
+          <h2 class="cta-title">复杂交给我，<br /><span class="grad-text">上岸留给你</span>。</h2>
+          <p class="cta-sub">提交需求后 1-2 小时内响应 · 先报价再开工 · 全程进度可查</p>
+          <div class="cta-row">
+            <template v-if="store.isLoggedIn">
+              <router-link to="/submit" class="btn-cta-primary">立即提交需求 <span>→</span></router-link>
+              <router-link to="/my-orders" class="btn-cta-ghost">查看我的订单</router-link>
+            </template>
+            <template v-else>
+              <button class="btn-cta-primary" @click="openLogin">立即提交需求 <span>→</span></button>
+              <router-link to="/register" class="btn-cta-ghost">免费注册</router-link>
+            </template>
+            <div class="cta-wx">
+              <span class="k">商务合作微信</span>
+              <span class="v">{{ adminWechat }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -483,10 +563,13 @@ onMounted(() => {
   setTimeout(() => { heroVis.value = true }, 80)
   setTimeout(animateCounters, 500)
   cleanup = initParticleSystem()
-  fetchData().then(() => {
-    setTimeout(() => { revealObs = initReveal() }, 100)
-  })
-  pollTimer = setInterval(() => fetchData(true), 60_000)
+  // ⚠️ reveal 观察器必须无论如何都初始化：
+  // 它不能挂在 fetchData().then() 上 —— 接口一旦失败，then 不执行，
+  // .reveal 元素会永远停在 opacity:0，首页除 hero 外整页空白。
+  fetchData()
+    .catch(() => { /* 接口异常不影响页面骨架可见 */ })
+    .finally(() => { setTimeout(() => { revealObs = initReveal() }, 100) })
+  pollTimer = setInterval(() => { fetchData(true).catch(() => {}) }, 60_000)
 })
 
 onUnmounted(() => {
@@ -704,55 +787,12 @@ onUnmounted(() => {
   background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.12), transparent);
 }
 
-/* Hero 价格参考（紧凑） */
-.hero-price {
-  opacity: 0; transform: translateY(32px);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  margin-top: 32px;
-  width: 100%; max-width: 520px; margin-left: auto; margin-right: auto;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  overflow: hidden;
-}
-.hero-price.visible { opacity: 1; transform: none; transition-delay: 0.62s; }
-.hero-price-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.hero-price-title { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 0.08em; text-transform: uppercase; }
-.hero-price-hint { font-size: 11px; color: rgba(255,255,255,0.28); }
-.hero-price-skeleton { padding: 10px 20px; }
+/* 骨架屏（价格参考加载中用，见 01 价格参考区块） */
 .hero-skel-line {
   height: 13px; border-radius: 6px; margin-bottom: 8px;
   background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
   background-size: 200% 100%; animation: shimmer 1.5s infinite;
 }
-.hero-price-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 20px; cursor: pointer;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  transition: background 0.15s;
-}
-.hero-price-row:last-child { border-bottom: none; }
-.hero-price-row:hover { background: rgba(255,255,255,0.05); }
-.hero-price-left { display: flex; align-items: center; gap: 10px; }
-.hero-price-idx {
-  width: 22px; height: 22px; border-radius: 6px;
-  background: rgba(96,165,250,0.15); color: #60a5fa;
-  font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.hero-price-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.78); }
-.hero-price-right { display: flex; align-items: center; gap: 6px; }
-.hero-price-tag {
-  background: rgba(96,165,250,0.15); color: #60a5fa;
-  font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 6px;
-}
-.hero-price-arrow { color: rgba(255,255,255,0.22); transition: color 0.15s, transform 0.15s; flex-shrink: 0; }
-.hero-price-row:hover .hero-price-arrow { color: #60a5fa; transform: translateX(3px); }
 
 /* Scroll hint */
 .scroll-hint {
@@ -1072,9 +1112,6 @@ onUnmounted(() => {
   .stat-label { font-size: 11px; }
   .stat-divider { height: 32px; }
   .scroll-hint { display: none; }
-  .hero-price { margin-top: 24px; }
-  .hero-price-row { padding: 9px 16px; }
-  .hero-price-name { font-size: 12px; }
 
   .features-section { padding: 56px 0; }
   .features-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -1095,5 +1132,283 @@ onUnmounted(() => {
   .hero-stats { gap: 10px; padding: 16px 20px; }
   .stat-divider { height: 24px; }
   .features-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   方案 B · 科技感增强（设计稿落地）
+   只覆盖视觉，不动结构与交互：粒子星空 / 极光 / reveal / 轮播 / 轮询全部保留
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 章节容器与章节头（左对齐 + 编号 + 右侧等宽小标签）── */
+.block { padding: 96px 0; position: relative; }
+
+.sec-header {
+  display: flex; align-items: flex-end; gap: 20px;
+  text-align: left; margin-bottom: 34px;
+}
+.sec-head-main { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.sec-header .sec-tag {
+  display: inline-flex; align-items: center;
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #93c5fd;
+  background: rgba(59,130,246,0.10);
+  border: 1px solid rgba(59,130,246,0.22);
+  padding: 6px 14px; border-radius: 100px; margin-bottom: 0;
+}
+.sec-header .sec-title { margin: 0; }
+.sec-meta {
+  margin-left: auto; padding-bottom: 6px; white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-3);
+}
+.sec-desc { text-align: left; margin: 0 0 34px; }
+
+/* ── Hero：Slogan 行 ── */
+.hero-tagline {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: clamp(17px, 1.9vw, 23px); font-weight: 700; color: #fff;
+  margin: 0 0 36px;
+}
+.hero-tagline.visible { opacity: 1; transform: none; transition-delay: 0.38s; }
+.hero-tagline .u {
+  background: linear-gradient(transparent 62%, rgba(59,130,246,0.45) 62%);
+  padding: 0 3px;
+}
+/* Hero 容器的底色交给全局网格背景 */
+.hero { background: transparent; }
+
+/* ── Hero 数据：四张玻璃 HUD 卡片（替代原分隔条版式）── */
+.hero-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 14px; width: 100%; max-width: 760px; margin: 0 auto;
+  background: none; border: none; border-radius: 0; padding: 0;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.stat-divider { display: none; }
+.stat-item {
+  position: relative; align-items: flex-start; gap: 2px; text-align: left;
+  padding: 18px 20px;
+  background: rgba(17, 24, 39, 0.62);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 14px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.stat-item::before {
+  content: ""; position: absolute; top: 0; left: 0;
+  width: 44px; height: 2px;
+  background: linear-gradient(90deg, var(--primary), transparent);
+}
+.stat-num {
+  font-size: clamp(24px, 3vw, 34px); font-weight: 800; letter-spacing: -0.02em;
+  background: linear-gradient(120deg, #ffffff, #93c5fd);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.stat-num em {
+  font-size: 0.5em; opacity: 1; margin-left: 2px;
+  color: var(--text-3); -webkit-text-fill-color: var(--text-3);
+}
+.stat-label { color: var(--text-2); font-size: 13px; letter-spacing: 0; text-transform: none; }
+
+/* ── 01 价格参考（玻璃行）── */
+.price-section { border-bottom: 1px solid var(--border); }
+.price-list { display: grid; gap: 12px; }
+.price-row {
+  display: grid; grid-template-columns: 50px 1fr 170px 30px; align-items: center; gap: 18px;
+  padding: 22px 24px; border-radius: var(--radius); cursor: pointer;
+  background: rgba(17, 24, 39, 0.62);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.22s, transform 0.22s, box-shadow 0.22s, background 0.22s;
+}
+.price-row:hover {
+  border-color: rgba(59, 130, 246, 0.30);
+  transform: translateX(4px);
+  background: rgba(17, 24, 39, 0.78);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(59, 130, 246, 0.14);
+}
+.price-idx {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; letter-spacing: 0.1em; color: var(--text-3);
+}
+.price-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.price-name { font-size: 17px; font-weight: 700; color: var(--text-1); }
+.price-desc { font-size: 13.5px; color: var(--text-2); }
+.price-tag {
+  justify-self: end; font-weight: 800; font-size: 15px; color: #bfdbfe;
+  padding: 5px 12px; border-radius: 9px;
+  background: rgba(59, 130, 246, 0.13);
+  border: 1px solid rgba(59, 130, 246, 0.26);
+}
+.price-go { color: var(--text-3); text-align: right; transition: color 0.2s, transform 0.2s; }
+.price-row:hover .price-go { color: #93c5fd; transform: translateX(4px); }
+.price-note { margin: 16px 0 0; color: var(--text-3); font-size: 13px; }
+.price-skeleton { display: grid; gap: 12px; padding: 6px 0; }
+
+/* ── 02 服务优势：玻璃卡 + HUD 角标 + 编号 ── */
+.features-section {
+  background: none;                 /* 让全局网格背景透出来 */
+  border-top: none; border-bottom: 1px solid var(--border);
+  padding: 96px 0;
+}
+.features-grid { counter-reset: feat; gap: 14px; }
+.feat-card {
+  counter-increment: feat;
+  background: rgba(17, 24, 39, 0.62);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px 30px; text-align: left;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+/* 右上角编号 */
+.feat-card::before {
+  content: "0" counter(feat);
+  position: absolute; top: 22px; right: 22px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; letter-spacing: 0.14em; color: var(--text-3);
+}
+/* 右下角 HUD 角标 */
+.feat-card::after {
+  content: ""; position: absolute; bottom: 10px; right: 10px;
+  width: 14px; height: 14px; opacity: 0.6;
+  border: solid var(--primary); border-width: 0 1.5px 1.5px 0;
+  border-radius: 0 0 4px 0;
+}
+.feat-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(59, 130, 246, 0.30);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(59, 130, 246, 0.16);
+}
+.feat-line { display: none; }        /* 用 HUD 角标替代原底部渐变线 */
+.feat-icon-bg { display: none; }
+.feat-icon-wrap {
+  width: 42px; height: 42px; border-radius: 12px;
+  margin: 0 0 18px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.26), rgba(34, 211, 238, 0.14));
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 22px rgba(59, 130, 246, 0.16);
+}
+.feat-icon { font-size: 19px; }
+.feat-title { text-align: left; }
+.feat-desc { text-align: left; }
+
+/* ── 03 服务流程 ── */
+.steps-section { border-bottom: 1px solid var(--border); }
+.steps { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.steps::before {
+  content: ""; position: absolute; top: 26px; left: 6%; right: 6%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.55), transparent);
+}
+.step {
+  position: relative; padding: 54px 20px 24px;
+  background: rgba(17, 24, 39, 0.45);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.step-node {
+  position: absolute; top: 18px; left: 20px;
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--bg); border: 2px solid var(--primary);
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.13), 0 0 18px rgba(59, 130, 246, 0.5);
+}
+.step-no {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px; letter-spacing: 0.14em; color: #93c5fd; margin-bottom: 10px;
+}
+.step-title { margin: 0 0 8px; font-size: 16px; font-weight: 750; color: var(--text-1); }
+.step-desc { margin: 0; font-size: 13.5px; color: var(--text-2); line-height: 1.7; }
+
+/* ── 04 历代作品 ── */
+.showcase-section {
+  background: none; padding: 96px 0;
+  border-bottom: 1px solid var(--border);
+}
+.carousel-slide {
+  background: rgba(17, 24, 39, 0.62);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.carousel-slide:hover { border-color: rgba(59, 130, 246, 0.30); }
+
+/* ── 05 最新动态 ── */
+.page-body { background: none; }
+.activity-card {
+  background: rgba(17, 24, 39, 0.62);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.activity-card:hover { border-color: rgba(59, 130, 246, 0.30); }
+
+/* ── 结尾 CTA（设计稿新增）── */
+.cta-section { padding: 96px 0 110px; }
+.cta-card {
+  position: relative; overflow: hidden;
+  border-radius: 22px;
+  padding: clamp(32px, 5vw, 56px);
+  background: linear-gradient(135deg, rgba(6, 13, 31, 0.95) 0%, rgba(15, 31, 77, 0.90) 55%, rgba(26, 45, 90, 0.86) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.cta-card::before {
+  content: ""; position: absolute; top: -140px; right: -100px;
+  width: 380px; height: 380px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.42), transparent 66%);
+  filter: blur(60px);
+}
+.cta-title {
+  position: relative; margin: 0 0 18px;
+  font-size: clamp(28px, 4.6vw, 54px); font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1.1; color: var(--text-1);
+}
+.cta-sub { position: relative; margin: 0 0 32px; color: var(--text-2); font-size: 15.5px; }
+.cta-row { position: relative; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.btn-cta-primary, .btn-cta-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  height: 50px; padding: 0 26px; border-radius: 12px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s, border-color 0.2s, background 0.2s;
+}
+.btn-cta-primary {
+  border: none; color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.btn-cta-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(59, 130, 246, 0.40); }
+.btn-cta-ghost {
+  background: rgba(17, 24, 39, 0.62); border: 1px solid rgba(59, 130, 246, 0.22);
+  color: var(--text-1);
+}
+.btn-cta-ghost:hover { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.10); }
+.cta-wx { padding-left: 16px; border-left: 2px solid var(--primary); }
+.cta-wx .k {
+  display: block; color: var(--text-3); font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.14em;
+}
+.cta-wx .v { font-size: 20px; font-weight: 800; letter-spacing: 0.04em; color: var(--text-1); }
+
+/* ── 响应式（覆盖上面的新版式）── */
+@media (max-width: 980px) {
+  .steps { grid-template-columns: repeat(2, 1fr); }
+  .steps::before { display: none; }
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .block, .features-section, .showcase-section { padding: 64px 0; }
+  .sec-header { flex-wrap: wrap; align-items: flex-start; }
+  .sec-meta { margin-left: 0; width: 100%; padding-bottom: 0; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); max-width: 100%; }
+  .steps { grid-template-columns: 1fr; }
+  .price-row { grid-template-columns: 34px 1fr 28px; padding: 18px; gap: 12px; }
+  .price-tag { grid-column: 2; grid-row: 2; justify-self: start; }
+  .price-go { grid-row: 1; grid-column: 3; }
+  .cta-row { gap: 18px; }
+  .cta-wx { padding-left: 0; border-left: none; }
 }
 </style>
