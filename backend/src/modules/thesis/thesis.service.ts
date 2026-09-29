@@ -8,12 +8,11 @@
 import { randomInt } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { pipeline } from 'node:stream/promises'
-import { nanoid } from 'nanoid'
 import type { MultipartFile } from '@fastify/multipart'
 
 import { conflict, notFound } from '../../framework/errors.js'
-import { resolveUploadDir, toUploadUrl, UPLOAD_URL_PREFIX } from '../../shared/storage/paths.js'
+import { resolveUploadDir, UPLOAD_URL_PREFIX } from '../../shared/storage/paths.js'
+import { saveImageUpload } from '../../shared/storage/image-upload.js'
 import {
   siteNoticeRepository,
   thesisActivityRepository,
@@ -199,29 +198,24 @@ export async function deleteProgress(id: number): Promise<void> {
 // ─── 管理侧：进度截图 ────────────────────────────────────────
 
 /**
- * 保存进度截图：文件落盘到 UPLOAD_DIR，数据库只存随机文件名对应的访问路径。
- * 注：文件类型 / 大小校验见 P0-4（上传安全校验），将在此函数内补齐。
+ * 保存进度截图。
+ * 类型（魔数嗅探）/ 大小校验与落盘统一委托给 shared/storage/image-upload.ts，
+ * 这里只负责业务前置校验与数据库记录（落库失败时回滚刚写入的文件）。
  */
 export async function saveProgressImage(progressId: number, file: MultipartFile): Promise<ThesisProgressImageVo> {
   await ensureProgressExists(progressId)
 
-  const ext = path.extname(file.filename) || '.png'
-  const storedName = nanoid(12) + ext
-  const uploadDir = resolveUploadDir()
-  fs.mkdirSync(uploadDir, { recursive: true })
-  const filePath = path.join(uploadDir, storedName)
-
-  await pipeline(file.file, fs.createWriteStream(filePath))
+  const saved = await saveImageUpload(file)
 
   try {
     return await thesisImageRepository.create({
       progressId,
-      filename: file.filename,      // 原始文件名只作展示用
-      url: toUploadUrl(storedName), // 对外访问路径用随机文件名
+      filename: saved.displayName, // 原始文件名只作展示用（已清理控制字符与路径）
+      url: saved.url,              // 对外访问路径由服务端生成
     })
   } catch (err) {
     // 落库失败时清掉刚落盘的文件，避免留下孤儿文件
-    await removeLocalUploadFiles([toUploadUrl(storedName)])
+    await removeLocalUploadFiles([saved.url])
     throw err
   }
 }

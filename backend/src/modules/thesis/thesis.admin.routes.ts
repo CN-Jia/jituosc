@@ -8,6 +8,7 @@ import { badRequest } from '../../framework/errors.js'
 import { successResponse } from '../../framework/response.js'
 import { parseDto } from '../../framework/validation.js'
 import { verifyAdmin } from '../../middlewares/auth.middleware.js'
+import { MAX_IMAGE_BYTES } from '../../shared/storage/image-upload.js'
 import {
   activityCreateDto,
   activityUpdateDto,
@@ -68,7 +69,8 @@ export async function adminThesisRoutes(fastify: FastifyInstance) {
   // ── 截图上传 ─────────────────────────────────────────────────
   fastify.post('/admin/thesis/progress/:id/images', { preHandler: verifyAdmin }, async (req) => {
     const { id } = parseDto(idParamDto, req.params)
-    const file = await req.file()
+    // 在解析层就限制大小：超限时 multipart 会中断读取，不会把整个大文件收进内存
+    const file = await req.file({ limits: { fileSize: MAX_IMAGE_BYTES, files: 1 } })
     if (!file) throw badRequest('未上传文件')
     const image = await thesisService.saveProgressImage(id, file)
     return successResponse({ image })

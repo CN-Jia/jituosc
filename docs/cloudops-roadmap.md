@@ -122,6 +122,37 @@
 - HTTP 实测（校验路径不需要数据库）：非法验证码 / 空白题目 → `400 VALIDATION_ERROR` + `NOT_FOUND_MSG`；参数合法 → 透传到 service；管理端无 token → `401 UNAUTHORIZED`
 - 未验证：涉及数据库的**成功**路径（本机无 PostgreSQL）
 
+### 已完成修复记录（P0-4 图片上传安全校验）
+
+**新增 `backend/src/shared/storage/image-upload.ts`**（各上传点复用；换 OSS 只需替换这里）
+
+| 校验项 | 做法 |
+|---|---|
+| 文件类型 | **魔数嗅探**（PNG / JPEG / WEBP），只信文件内容，不信 `filename` 与 `Content-Type`；改名伪装直接拒 |
+| 大小 | 单图 ≤ **5MB**：既在解析层 `req.file({ limits })` 限制（超限即中断读取，不会把大文件收进内存），也在存储层复查 |
+| 文件名 | 落盘名 = `nanoid(24)` + **由魔数推导**的扩展名；用户原始名绝不进磁盘路径。展示名另做清理（剥路径、去控制字符、截断 80 字） |
+| 落盘方式 | 先写 `.tmp` 再 `rename` 原子改名，避免读到半截文件 |
+| 失败处理 | 类型不符 → 400 `FILE_TYPE_INVALID`；超限 → 413 `FILE_TOO_LARGE`；落库失败 → 回滚已落盘文件 |
+
+**分层收紧**
+
+- 全局 multipart 兜底上限 100MB → **10MB**（`plugins/multipart.ts`），各上传点的真实限制更严并显式传入
+- Nginx `client_max_body_size` 110m → **12m**（两套配置），网关不再放行 110MB 的请求体
+
+**关于 `file-type` 依赖**：后端是 CommonJS 构建，而 `file-type` v17+ 为 ESM-only（v16 是最后的 CJS 版本）。白名单只有 3 种格式，因此手写魔数嗅探（约 30 行、可单测）；若将来白名单显著扩大再换库。
+
+**验证**
+
+| 用例 | 结果 |
+|---|---|
+| 单测 `tests/unit/image-upload.test.ts`（17 例） | 通过：GIF/PDF/ZIP/纯文本/半截魔数全部拒绝；伪装文件被拒；超限 413；展示名跨平台清理（`../../etc/passwd`、`C:\...`、控制字符） |
+| **集成测试** `tests/integration/thesis-upload.test.ts`（6 例） | 通过：`app.inject()` 走完整链路（mock 掉 Prisma，无需 PostgreSQL），实测状态码依次为 **401 → 403 → 400（伪装 GIF）→ 413（超限）→ 404（进度不存在）→ 200（合法 PNG 落盘）** |
+| 全部测试 | **48 passed**（原 6 + thesis 19 + 上传 17 + 集成 6） |
+| 落盘安全性 | 断言访问路径匹配 `^/uploads/[A-Za-z0-9_-]{24}\.png$`、不含用户名、且文件确实写在上传目录内 |
+| 测试环境 | 新增 `tests/setup.ts` 兜底环境变量（本地不必准备 `.env` 即可跑测试） |
+
+**仍未做（属 P1-6）**：图片仍存本地磁盘，未接 OSS。`ali-oss` 依赖已在 `backend/package.json`，接入点就是 `saveImageUpload()`；生产卷路径已在 P0-5 对齐。
+
 ---
 
 ## 1. 最终形态
@@ -243,7 +274,7 @@ Route → DTO（校验）→ Service（业务）→ Repository（Prisma）→ Po
 
 ---
 
-### ☐ P0-4 图片上传安全校验（+ 为 P1 接 OSS 留口子）
+### ✅ P0-4 图片上传安全校验（已完成）
 
 **现状问题**（见 §0-5）：100MB 上限、无类型白名单、直接用用户扩展名、DB 存原始文件名。
 

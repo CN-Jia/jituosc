@@ -28,6 +28,8 @@ export const conflict = (message = '资源冲突', code: string = ERROR_CODES.CO
   new HttpError(code, message, 409)
 export const unprocessable = (message: string, code: string) =>
   new HttpError(code, message, 422)
+export const payloadTooLarge = (message = '文件过大', code: string = ERROR_CODES.FILE_TOO_LARGE) =>
+  new HttpError(code, message, 413)
 
 /** 判断一个错误是否为带 code 的 HttpError */
 export function isHttpError(err: unknown): err is HttpError {
@@ -86,6 +88,8 @@ export function statusForCode(code: string): number {
     case ERROR_CODES.INVALID_STATUS_TRANSITION: return 422
     case ERROR_CODES.CONFLICT: return 409
     case ERROR_CODES.RATE_LIMITED: return 429
+    case ERROR_CODES.FILE_TOO_LARGE: return 413
+    case ERROR_CODES.FILE_TYPE_INVALID: return 400
     case ERROR_CODES.INTERNAL_ERROR: return 500
     default: return 400
   }
