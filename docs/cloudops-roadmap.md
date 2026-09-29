@@ -17,7 +17,7 @@
 | 1 | CI/CD 触发分支可能写的是 `main`，实际分支是 `master` | ✅ **确认有问题**：本地 HEAD 指向 `refs/heads/master`，而两个 workflow 都只监听 `main` → **推送到 master 目前不会触发任何 workflow** | `.git/HEAD`；`.github/workflows/ci.yml:4-5`；`.github/workflows/deploy.yml:4-5` |
 | 2 | Docker Compose 生产链路需要整理 | ✅ **链路已经完整**：构建 backend + nginx 镜像 → 推 GHCR → SSH 到服务器 → `docker compose pull/up -d` → `prisma migrate deploy` → 健康检查 → 清理旧镜像 | `.github/workflows/deploy.yml`、`docker-compose.prod.yml` |
 | 3 | PM2 与 Docker 两套运行方式并存 | ✅ 确认并存，且**曾有两份冲突的 PM2 配置**（根目录 1 实例 fork `400M` vs `deploy/` 2 实例 cluster `512M`）。**已处理**：删除根目录那份，统一保留 `deploy/ecosystem.config.js` | `docker-compose.prod.yml:16`、`deploy/ecosystem.config.js` |
-| 4 | Thesis 模块分层不规范 | ✅ 确认：thesis 只有 `thesis.service.ts` / `thesis.routes.ts` / `thesis.admin.routes.ts`，**无 repository / dto / vo**；而 order 模块**已有** `order.repository.ts` → 分层标准已建立，只是 thesis 没跟上 | `backend/src/modules/thesis/`、`backend/src/modules/order/order.repository.ts` |
+| 4 | Thesis 模块分层不规范 | ✅ 确认；**已修复**（见下方 P0-3 记录）：补齐 repository / dto / vo / types，并把路由层清空为薄层 | `backend/src/modules/thesis/`、`backend/src/modules/order/order.repository.ts` |
 | 5 | 图片上传需要安全校验 | ✅ 确认偏弱：全局 multipart 上限 **100MB**（远宽于 5MB），上传路由用 `path.extname(data.filename)` 拼文件名直接落盘，**无 MIME / 类型白名单**，数据库还存了用户原始文件名 | `backend/src/plugins/multipart.ts:5-10`、`backend/src/modules/thesis/thesis.admin.routes.ts:108-122` |
 | 6 | 上传走本地 `uploads/`，未接 OSS | ✅ 确认未接入代码：**`ali-oss@^6.20.0` 已在 `backend/package.json` 依赖里，但源码中没有任何 import/使用**（即依赖已备好、功能未实现）；生产用 volume `./backend/uploads:/app/backend/uploads` 持久化 —— 而该挂载路径**与容器内实际写入路径不一致**，见下方修复记录 | `backend/package.json:23`；`docker-compose.prod.yml:38` |
 | 7 | 需要检查 Nginx 的 `/uploads/` 访问链路 | ⚠️ **根因比 Nginx 更深**：后端**根本没有注册静态文件服务**（无 `@fastify/static`、`app.ts` 无 static 插件），数据库里存的 `/uploads/xxx.png` 无人提供；Nginx 两个配置也都没有 `/uploads/` location，且正则 location `~* \.(png\|jpg\|…)$` 优先级高于前缀 location → 双重 404。**已修复** | `backend/src/app.ts`（修复前）；`deploy/nginx-docker.conf`、`deploy/nginx/jituo.conf` |
@@ -83,6 +83,44 @@
 | GitHub Actions | 两个 workflow 均注册为 `active`；CI run #1 由 master 推送触发 |
 
 > ⚠️ 尚未验证项：本机 Docker 守护进程未运行、也没有 nginx 二进制，因此 **Nginx 配置未经 `nginx -t` 语法校验**，compose 的上传路径改动也无法本地起容器验证。上线前请在服务器执行 `sudo nginx -t`。
+
+### 已完成修复记录（P0-3 Thesis 分层重构）
+
+**落地结构**（与 order 模块对齐）
+
+| 文件 | 职责 |
+|---|---|
+| `thesis.routes.ts` / `thesis.admin.routes.ts` | 薄路由：鉴权 → `parseDto` 校验 → 调 service → `successResponse` |
+| `thesis.dto.ts` | 7 个 Zod schema（题目 / 进度 / 活动 / 漂浮字 / 公开查询 / id 参数） |
+| `thesis.service.ts` | 业务逻辑，统一抛 `HttpError`；不碰 prisma、不碰 request |
+| `thesis.repository.ts` | 全部 Prisma 访问，`select` 字段白名单 |
+| `thesis.vo.ts` | 出参整形，按受众裁剪（公开视图**不含** `uniqueCode`） |
+| `thesis.types.ts` | 共享类型与常量，零依赖（避免循环引用） |
+| `framework/validation.ts` | 新增通用 `parseDto`：校验失败统一转 400 `VALIDATION_ERROR` |
+
+**关键决策：统一响应契约（这条改变了接口形状，务必知情）**
+
+原 thesis 是全项目**唯一**使用裸对象（`{project}` / `{ok:true}` / `{message}`）的模块，与 order 等模块的 `{success,data}` 以及项目文档中的「统一响应」约定不一致。本次统一为 `successResponse()` + `errorResponse()`，并**同步更新了 2 个消费方**：用户端 `frontend/src/pages/thesis/index.vue` 3 处、管理端 `admin/src/pages/thesis/index.vue` 5 处（取值从 `res.project` 改为 `res.data.project`）。
+
+顺带修好的一个真实问题：管理端错误提示此前显示的是 axios 的英文报错——因为拦截器读 `response.data.error`，而 thesis 返回的是 `data.message`；统一后能正确显示「题目已存在」等业务文案。
+
+**顺带修掉的实际缺陷**
+
+| 问题 | 处理 |
+|---|---|
+| 进度百分比无范围校验（`Number()` 转换后直接入库） | DTO 校验 0–100 整数；空值不再被 coerce 成 0 |
+| 删除截图 / 进度 / 题目只删数据库行，磁盘文件永久残留 | service 删除后清理本地文件，且只允许删上传目录内的文件（basename + 目录前缀校验，防路径穿越） |
+| 写库失败会留下孤儿文件 | 落库异常时回滚已落盘文件 |
+| 更新 / 删除不存在的记录抛 Prisma P2025 → 500 | 先查存在性，改为 404 |
+| body 解析失败也被归为 500 | `toHttpError` 尊重 4xx 后返回 400 |
+| service 直接持有 `prisma` 单例 | 全部下沉到 repository |
+
+**验证**
+
+- `pnpm --filter backend build` / `test`：0 错误，**25 passed**（新增 `backend/tests/unit/thesis.test.ts` 19 例，覆盖 DTO 边界与「公开视图不泄露 uniqueCode」这一安全性质）
+- 用户端 `vite build` + `vue-tsc --noEmit`、管理端 `vite build`：均 exit 0
+- HTTP 实测（校验路径不需要数据库）：非法验证码 / 空白题目 → `400 VALIDATION_ERROR` + `NOT_FOUND_MSG`；参数合法 → 透传到 service；管理端无 token → `401 UNAUTHORIZED`
+- 未验证：涉及数据库的**成功**路径（本机无 PostgreSQL）
 
 ---
 
@@ -168,7 +206,7 @@
 
 ---
 
-### ☐ P0-3 Thesis 模块分层重构
+### ✅ P0-3 Thesis 模块分层重构（已完成）
 
 **目标结构**（与 order 模块对齐）：
 

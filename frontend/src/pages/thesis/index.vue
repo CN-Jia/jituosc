@@ -96,9 +96,10 @@ const loadingActivities = ref(false)
 
 async function fetchNotice() {
   try {
-    const data: any = await api.getThesisNotice()
-    if (data && data.enabled && data.text) {
-      noticeText.value = data.text
+    const res: any = await api.getThesisNotice()
+    const notice = res.data
+    if (notice && notice.enabled && notice.text) {
+      noticeText.value = notice.text
       noticeVisible.value = true
     }
   } catch {
@@ -109,8 +110,8 @@ async function fetchNotice() {
 async function fetchActivities() {
   loadingActivities.value = true
   try {
-    const data: any = await api.getThesisActivities()
-    activities.value = data?.activities || []
+    const res: any = await api.getThesisActivities()
+    activities.value = res.data?.activities || []
   } catch {
     activities.value = []
   } finally {
@@ -153,8 +154,8 @@ async function confirmQuery() {
   }
   querying.value = true
   try {
-    const data: any = await api.queryThesisProject({ title: t, code: c })
-    thesisStore.setResult(data)
+    const res: any = await api.queryThesisProject({ title: t, code: c })
+    thesisStore.setResult(res.data)
     showModal.value = false
     code.value = ''
     router.push('/thesis/result')

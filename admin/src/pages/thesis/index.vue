@@ -186,7 +186,7 @@ async function loadProjects() {
   loadingProjects.value = true
   try {
     const res: any = await api.getThesisProjects()
-    projects.value = res.projects ?? []
+    projects.value = res.data?.projects ?? []
   } finally {
     loadingProjects.value = false
   }
@@ -241,7 +241,7 @@ const addingProgress = ref(false)
 
 async function openProgress(row: any) {
   const res: any = await api.getThesisProject(row.id)
-  currentProject.value = res.project
+  currentProject.value = res.data?.project
   Object.assign(progressForm, { title: '', percent: 0, content: '' })
   progressDrawer.value = true
 }
@@ -262,7 +262,7 @@ async function addProgress() {
 
 async function refreshProgress() {
   const res: any = await api.getThesisProject(currentProject.value.id)
-  currentProject.value = res.project
+  currentProject.value = res.data?.project
   Object.assign(progressForm, { title: '', percent: 0, content: '' })
 }
 
@@ -300,7 +300,7 @@ async function loadActivities() {
   loadingActivities.value = true
   try {
     const res: any = await api.getThesisActivities()
-    activities.value = res.activities ?? []
+    activities.value = res.data?.activities ?? []
   } finally {
     loadingActivities.value = false
   }
@@ -347,9 +347,10 @@ const savingNotice = ref(false)
 
 async function loadNotice() {
   const res: any = await api.getThesisNotice()
-  if (res.notice) {
-    notice.text = res.notice.text ?? ''
-    notice.enabled = res.notice.enabled ?? true
+  const data = res.data?.notice
+  if (data) {
+    notice.text = data.text ?? ''
+    notice.enabled = data.enabled ?? true
   }
 }
 

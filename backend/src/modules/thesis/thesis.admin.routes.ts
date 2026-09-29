@@ -1,187 +1,119 @@
-// thesis 模块管理路由：题目/进度/截图/活动/通知管理（复用极拓管理员鉴权）
+// thesis 模块管理路由：题目 / 进度 / 截图 / 活动 / 漂浮字。
+//
+// 薄层约定：verifyAdmin 鉴权 → Zod 校验（dto）→ 调用 service → 统一响应。
+// 本文件不出现任何 prisma 调用、不写业务逻辑。
 
 import { FastifyInstance } from 'fastify'
-import { nanoid } from 'nanoid'
-import fs from 'node:fs'
-import path from 'node:path'
-import { pipeline } from 'node:stream/promises'
-import { prisma } from '../../lib/prisma.js'
+import { badRequest } from '../../framework/errors.js'
+import { successResponse } from '../../framework/response.js'
+import { parseDto } from '../../framework/validation.js'
 import { verifyAdmin } from '../../middlewares/auth.middleware.js'
-import { resolveUploadDir, toUploadUrl } from '../../shared/storage/paths.js'
-import { generateUniqueCode } from './thesis.service.js'
+import {
+  activityCreateDto,
+  activityUpdateDto,
+  idParamDto,
+  noticeUpdateDto,
+  progressCreateDto,
+  projectCreateDto,
+  projectUpdateDto,
+} from './thesis.dto.js'
+import * as thesisService from './thesis.service.js'
 
 export async function adminThesisRoutes(fastify: FastifyInstance) {
   // ── 题目 ─────────────────────────────────────────────────────
   fastify.get('/admin/thesis/projects', { preHandler: verifyAdmin }, async () => {
-    const projects = await prisma.thesisProject.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { progresses: true } } },
-    })
-    return { projects }
+    const projects = await thesisService.listProjects()
+    return successResponse({ projects })
   })
 
-  fastify.post('/admin/thesis/projects', { preHandler: verifyAdmin }, async (req, reply) => {
-    const body = req.body as any
-    const title = (body.title ?? '').toString().trim()
-    const studentName = (body.studentName ?? '').toString().trim()
-    if (!title || !studentName) {
-      return reply.code(400).send({ message: '题目和姓名不能为空' })
-    }
-    const existing = await prisma.thesisProject.findUnique({ where: { title } })
-    if (existing) {
-      return reply.code(409).send({ message: '题目已存在' })
-    }
-    const uniqueCode = await generateUniqueCode()
-    const project = await prisma.thesisProject.create({
-      data: {
-        title,
-        uniqueCode,
-        studentName,
-        studentNo: body.studentNo ?? null,
-        advisor: body.advisor ?? null,
-        major: body.major ?? null,
-      },
-    })
-    return { project }
+  fastify.get('/admin/thesis/projects/:id', { preHandler: verifyAdmin }, async (req) => {
+    const { id } = parseDto(idParamDto, req.params)
+    const project = await thesisService.getProjectDetail(id)
+    return successResponse({ project })
+  })
+
+  fastify.post('/admin/thesis/projects', { preHandler: verifyAdmin }, async (req) => {
+    const input = parseDto(projectCreateDto, req.body)
+    const project = await thesisService.createProject(input)
+    return successResponse({ project })
   })
 
   fastify.put('/admin/thesis/projects/:id', { preHandler: verifyAdmin }, async (req) => {
-    const params = req.params as any
-    const body = req.body as any
-    const data: any = {}
-    if (body.title !== undefined) data.title = body.title
-    if (body.studentName !== undefined) data.studentName = body.studentName
-    if (body.studentNo !== undefined) data.studentNo = body.studentNo
-    if (body.advisor !== undefined) data.advisor = body.advisor
-    if (body.major !== undefined) data.major = body.major
-    const project = await prisma.thesisProject.update({ where: { id: Number(params.id) }, data })
-    return { project }
+    const { id } = parseDto(idParamDto, req.params)
+    const input = parseDto(projectUpdateDto, req.body)
+    const project = await thesisService.updateProject(id, input)
+    return successResponse({ project })
   })
 
   fastify.delete('/admin/thesis/projects/:id', { preHandler: verifyAdmin }, async (req) => {
-    const params = req.params as any
-    await prisma.thesisProject.delete({ where: { id: Number(params.id) } })
-    return { ok: true }
-  })
-
-  fastify.get('/admin/thesis/projects/:id', { preHandler: verifyAdmin }, async (req, reply) => {
-    const params = req.params as any
-    const project = await prisma.thesisProject.findUnique({
-      where: { id: Number(params.id) },
-      include: {
-        progresses: {
-          orderBy: { createdAt: 'desc' },
-          include: { images: { orderBy: { createdAt: 'asc' } } },
-        },
-      },
-    })
-    if (!project) return reply.code(404).send({ message: '未找到该题目' })
-    return { project }
+    const { id } = parseDto(idParamDto, req.params)
+    await thesisService.deleteProject(id)
+    return successResponse({ ok: true })
   })
 
   // ── 进度 ─────────────────────────────────────────────────────
-  fastify.post('/admin/thesis/projects/:id/progress', { preHandler: verifyAdmin }, async (req, reply) => {
-    const params = req.params as any
-    const body = req.body as any
-    const title = (body.title ?? '').toString().trim()
-    if (!title) return reply.code(400).send({ message: '进度标题不能为空' })
-    if (body.percent === undefined || body.percent === null || body.percent === '') {
-      return reply.code(400).send({ message: '进度百分比不能为空' })
-    }
-    const progress = await prisma.thesisProgress.create({
-      data: {
-        projectId: Number(params.id),
-        title,
-        percent: Number(body.percent),
-        content: body.content ?? null,
-      },
-    })
-    return { progress }
+  fastify.post('/admin/thesis/projects/:id/progress', { preHandler: verifyAdmin }, async (req) => {
+    const { id } = parseDto(idParamDto, req.params)
+    const input = parseDto(progressCreateDto, req.body)
+    const progress = await thesisService.createProgress(id, input)
+    return successResponse({ progress })
   })
 
   fastify.delete('/admin/thesis/progress/:id', { preHandler: verifyAdmin }, async (req) => {
-    const params = req.params as any
-    await prisma.thesisProgress.delete({ where: { id: Number(params.id) } })
-    return { ok: true }
+    const { id } = parseDto(idParamDto, req.params)
+    await thesisService.deleteProgress(id)
+    return successResponse({ ok: true })
   })
 
   // ── 截图上传 ─────────────────────────────────────────────────
-  fastify.post('/admin/thesis/progress/:id/images', { preHandler: verifyAdmin }, async (req, reply) => {
-    const params = req.params as any
-    const data = await req.file()
-    if (!data) return reply.code(400).send({ message: '未上传文件' })
-    const ext = path.extname(data.filename) || '.png'
-    const name = nanoid(12) + ext
-    // 与静态服务共用同一目录解析逻辑，避免"写在这里、URL 指向那里"的静默 404
-    const uploadDir = resolveUploadDir()
-    fs.mkdirSync(uploadDir, { recursive: true })
-    const writeStream = fs.createWriteStream(path.join(uploadDir, name))
-    await pipeline(data.file, writeStream)
-    const image = await prisma.thesisProgressImage.create({
-      data: { progressId: Number(params.id), filename: data.filename, url: toUploadUrl(name) },
-    })
-    return { image }
+  fastify.post('/admin/thesis/progress/:id/images', { preHandler: verifyAdmin }, async (req) => {
+    const { id } = parseDto(idParamDto, req.params)
+    const file = await req.file()
+    if (!file) throw badRequest('未上传文件')
+    const image = await thesisService.saveProgressImage(id, file)
+    return successResponse({ image })
   })
 
   fastify.delete('/admin/thesis/images/:id', { preHandler: verifyAdmin }, async (req) => {
-    const params = req.params as any
-    await prisma.thesisProgressImage.delete({ where: { id: Number(params.id) } })
-    return { ok: true }
+    const { id } = parseDto(idParamDto, req.params)
+    await thesisService.deleteProgressImage(id)
+    return successResponse({ ok: true })
   })
 
   // ── 活动 ─────────────────────────────────────────────────────
   fastify.get('/admin/thesis/activities', { preHandler: verifyAdmin }, async () => {
-    const activities = await prisma.thesisActivity.findMany({ orderBy: { createdAt: 'desc' } })
-    return { activities }
+    const activities = await thesisService.listActivities()
+    return successResponse({ activities })
   })
 
-  fastify.post('/admin/thesis/activities', { preHandler: verifyAdmin }, async (req, reply) => {
-    const body = req.body as any
-    const title = (body.title ?? '').toString().trim()
-    if (!title) return reply.code(400).send({ message: '活动标题不能为空' })
-    const activity = await prisma.thesisActivity.create({
-      data: {
-        title,
-        content: body.content ?? null,
-        published: body.published === undefined ? true : Boolean(body.published),
-      },
-    })
-    return { activity }
+  fastify.post('/admin/thesis/activities', { preHandler: verifyAdmin }, async (req) => {
+    const input = parseDto(activityCreateDto, req.body)
+    const activity = await thesisService.createActivity(input)
+    return successResponse({ activity })
   })
 
   fastify.put('/admin/thesis/activities/:id', { preHandler: verifyAdmin }, async (req) => {
-    const params = req.params as any
-    const body = req.body as any
-    const data: any = {}
-    if (body.title !== undefined) data.title = body.title
-    if (body.content !== undefined) data.content = body.content
-    if (body.published !== undefined) data.published = Boolean(body.published)
-    const activity = await prisma.thesisActivity.update({ where: { id: Number(params.id) }, data })
-    return { activity }
+    const { id } = parseDto(idParamDto, req.params)
+    const input = parseDto(activityUpdateDto, req.body)
+    const activity = await thesisService.updateActivity(id, input)
+    return successResponse({ activity })
   })
 
   fastify.delete('/admin/thesis/activities/:id', { preHandler: verifyAdmin }, async (req) => {
-    const params = req.params as any
-    await prisma.thesisActivity.delete({ where: { id: Number(params.id) } })
-    return { ok: true }
+    const { id } = parseDto(idParamDto, req.params)
+    await thesisService.deleteActivity(id)
+    return successResponse({ ok: true })
   })
 
   // ── 漂浮字 ───────────────────────────────────────────────────
   fastify.get('/admin/thesis/notice', { preHandler: verifyAdmin }, async () => {
-    const notice = await prisma.siteNotice.findFirst()
-    return { notice }
+    const notice = await thesisService.getNotice()
+    return successResponse({ notice })
   })
 
   fastify.put('/admin/thesis/notice', { preHandler: verifyAdmin }, async (req) => {
-    const body = req.body as any
-    const data = {
-      text: body.text ?? '',
-      enabled: body.enabled === undefined ? true : Boolean(body.enabled),
-    }
-    const existing = await prisma.siteNotice.findFirst()
-    const notice = existing
-      ? await prisma.siteNotice.update({ where: { id: existing.id }, data })
-      : await prisma.siteNotice.create({ data })
-    return { notice }
+    const input = parseDto(noticeUpdateDto, req.body)
+    const notice = await thesisService.updateNotice(input)
+    return successResponse({ notice })
   })
 }
