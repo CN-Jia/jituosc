@@ -344,13 +344,45 @@ README 按路线图要求重写为 12 节（含锚点目录）：项目简介 / 
 
 | 项 | 状态 |
 |---|---|
-| `location = /health` 同步到线上 Nginx（`sudo nginx -t && reload`） | ⏳ 待你确认 |
-| 新首页 / 深色主题设计部署到线上（需在服务器构建前端） | ⏳ 待你确认 |
-| 幸运转盘弹窗保持开启还是关闭 | ⏳ 待你确认 |
+| `location = /health` 同步到线上 Nginx（`sudo nginx -t && reload`） | ✅ **已完成**（2026-09-30，实测 `/health` 返回 `{"ok":true,...}`） |
+| 新首页 / 深色主题设计部署到线上 | ✅ **已完成**（前端 + 管理端新产物上线，旧资源 404，浏览器实测新文案与版式） |
+| 幸运转盘弹窗保持开启还是关闭 | ✅ **已按你的要求关闭**（`activity_popup.enabled = false`） |
 | 镜像构建与容器运行、Prometheus/Grafana 实跑、PM2 重启流程 | ❌ 仍未实测 |
 
-> **Git 注意**：`backend/prisma/seed-demo.ts` 与 `deploy/backup.sh` 是直接传到服务器仓库目录的。
-> 如果服务器上 `git pull` 报本地改动冲突，先 `git checkout -- backend/prisma/seed-demo.ts deploy/backup.sh` 再拉取（服务器上内容与仓库提交一致）。
+> **Git 注意**：服务器上的仓库与远端**历史已分叉**（服务器 HEAD `3c1ddf8` 是历史重写前的旧线，本地领先 104 / 落后 15），
+> `git pull` 不会干净合并。实测服务器**能连 GitHub**（`git fetch` 1.9 秒成功），要更新只能
+> `git fetch origin && git reset --hard origin/master`（注意保留未跟踪的 `backend/uploads/`）。
+> 详见 `docs/health-check-report.md` §6。
+
+---
+
+### 已完成：系统健康度与完成度测试（2026-09-30）
+
+完整报告见 **`docs/health-check-report.md`**（含每条结论的真实命令输出）。要点：
+
+**测试前先做了安全兜底**：全库备份 `pretest_20260930_010838.sql.gz`（md5 `3889beda…`）+ 30 张表 / 91 行的行数基线，
+测试数据全部带 `healthcheck.<时间戳>` 标记并登记在 `testdata_20260930_011304.txt`，**只增不删**，随时可精确清理。
+
+**测试期间新修并验证的**：
+
+| 问题 | 处理 |
+|---|---|
+| `/health` 被 SPA 回退接管（后端挂了也 200 HTML） | 线上 Nginx 补 `location = /health` → 实测返回后端 JSON |
+| `/metrics` 对外返回 200 HTML（语义混乱） | 补 `location = /metrics { return 404; }` |
+| **SPA 的 `index.html` 被浏览器启发式缓存**：老访客长期停留在旧站，极端情况白屏（旧 HTML 指向已删除的 hash 资源） | 新增 `location = /index.html` 与 `/admin/index.html` → `no-cache, must-revalidate`；hash 资源仍 immutable；条件请求实测 304 |
+| 幸运转盘弹窗 | 按要求关闭 |
+
+**测出的真问题（按严重度，详见报告 §3）**：邮件验证码发送失败时接口仍报「验证码已发送」（Resend 返回 422 而接口返回 200）；
+`SERVERCHAN_TOKEN` 为空导致新订单通知**完全没生效**；资料页「年级=不设置」保存必 400；
+毕设页活动公告与漂浮字永空（thesis 接口无统一响应包装，前端读 `res.data`）；
+`/api/posts?page=0` → 500；坏 JSON → 500；未审核帖子报「不存在」且作者无处可查；
+以及安全响应头缺失、JS/CSS 未 gzip（admin 1.2MB→388KB）、无 HTTP/2、后端监听 `0.0.0.0:3000`、
+`.env` 权限 664、**备份脚本无 crontab（不会自动跑）**、PM2 ecosystem 与实际不符、
+线上后端产物仍是 **9/14** 的构建（`/metrics`、上传校验、统一错误结构均未上线）。
+
+**通过的项目**：13 个前端路由真实浏览器渲染 0 报错、8 个用户接口 + 5 个管理接口鉴权正确、防爆破锁定生效、
+限流 429 生效、下单/发帖/积分/转盘/毕设查询正向链路全通、路径穿越三种编码全被 400 拦、
+TLS 1.3 + 证书自动续期、PM2 开机自启已启用、Nginx 日志轮转正常、数据无孤儿。
 
 ---
 

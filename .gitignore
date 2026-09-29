@@ -25,4 +25,7 @@ uploads/
 Thumbs.db
 .claude/settings.local.json
 
+# ── 浏览器自动化（健康检查截图等，不入库）──────────────
+.playwright-mcp/
+
 # 注意：backend/prisma/migrations/ 必须提交，切勿忽略
