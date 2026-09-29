@@ -19,8 +19,8 @@
 | 3 | PM2 与 Docker 两套运行方式并存 | ✅ 确认并存，且**曾有两份冲突的 PM2 配置**（根目录 1 实例 fork `400M` vs `deploy/` 2 实例 cluster `512M`）。**已处理**：删除根目录那份，统一保留 `deploy/ecosystem.config.js` | `docker-compose.prod.yml:16`、`deploy/ecosystem.config.js` |
 | 4 | Thesis 模块分层不规范 | ✅ 确认：thesis 只有 `thesis.service.ts` / `thesis.routes.ts` / `thesis.admin.routes.ts`，**无 repository / dto / vo**；而 order 模块**已有** `order.repository.ts` → 分层标准已建立，只是 thesis 没跟上 | `backend/src/modules/thesis/`、`backend/src/modules/order/order.repository.ts` |
 | 5 | 图片上传需要安全校验 | ✅ 确认偏弱：全局 multipart 上限 **100MB**（远宽于 5MB），上传路由用 `path.extname(data.filename)` 拼文件名直接落盘，**无 MIME / 类型白名单**，数据库还存了用户原始文件名 | `backend/src/plugins/multipart.ts:5-10`、`backend/src/modules/thesis/thesis.admin.routes.ts:108-122` |
-| 6 | 上传走本地 `uploads/`，未接 OSS | ✅ 确认未接入：后台无 `ali-oss`，全仓库搜不到 OSS 相关代码；生产用 volume `./backend/uploads:/app/backend/uploads` 持久化 | `docker-compose.prod.yml:37-38` |
-| 7 | 需要检查 Nginx 的 `/uploads/` 访问链路 | ⚠️ **发现真实故障点**：`deploy/nginx-docker.conf` 和 `deploy/nginx/jituo.conf` **都没有 `/uploads/` location**；且正则 location `~* \.(js\|css\|png\|jpg\|…)$` 优先级高于前缀 location `/`，图片请求会被当作前端静态资源去 `/usr/share/nginx/html` 下找 → **容器化部署后上传的图片是 404**。这一项不是"检查"，是必须修的 bug | `deploy/nginx-docker.conf:63-67,83-88`；`deploy/nginx/jituo.conf:37-41` |
+| 6 | 上传走本地 `uploads/`，未接 OSS | ✅ 确认未接入代码：**`ali-oss@^6.20.0` 已在 `backend/package.json` 依赖里，但源码中没有任何 import/使用**（即依赖已备好、功能未实现）；生产用 volume `./backend/uploads:/app/backend/uploads` 持久化 —— 而该挂载路径**与容器内实际写入路径不一致**，见下方修复记录 | `backend/package.json:23`；`docker-compose.prod.yml:38` |
+| 7 | 需要检查 Nginx 的 `/uploads/` 访问链路 | ⚠️ **根因比 Nginx 更深**：后端**根本没有注册静态文件服务**（无 `@fastify/static`、`app.ts` 无 static 插件），数据库里存的 `/uploads/xxx.png` 无人提供；Nginx 两个配置也都没有 `/uploads/` location，且正则 location `~* \.(png\|jpg\|…)$` 优先级高于前缀 location → 双重 404。**已修复** | `backend/src/app.ts`（修复前）；`deploy/nginx-docker.conf`、`deploy/nginx/jituo.conf` |
 | 8 | 缺少自动化测试 | ✅ 确认：全后端只有 **1 个**测试文件 | `backend/tests/unit/order-status.test.ts` |
 | 9 | 没有基础设施监控 | ✅ 确认：无 `prom-client`、无 `/metrics`、无 `deploy/monitoring/` | 全仓库检索无匹配 |
 | 10 | 需要做数据库自动备份 | 🟡 **已有一半**：`deploy/backup.sh` 已实现 `pg_dump \| gzip` + 保留 7 天 + crontab 建议（`0 3 * * *`）；**缺 OSS 上传、缺 `restore.sh`** | `deploy/backup.sh` |
@@ -41,7 +41,48 @@
 | 保留 | `webdrop/` 模块、spec-kit 脚手架（`.specify/`、`specs/`、`.github/agents|prompts/`） |
 
 > 整理前的内容已备份到仓库外的 `Desktop\jthub-cleanup-backup-<时间戳>\`。
-> GitHub 侧为单一初始提交 `b9744f5`（force push）；旧提交对象在一段时间内仍可通过 SHA 访问，彻底清除需删除仓库重建。
+> GitHub 侧重写为单一初始提交 `a05a59a`（force push）；旧提交对象在一段时间内仍可通过 SHA 访问，彻底清除需删除仓库重建。
+
+### 已完成修复记录（P0-1、P0-5）
+
+**P0-1 CI/CD 触发分支**
+
+| 项 | 处理 |
+|---|---|
+| `ci.yml` | 触发条件由 `pull_request: [main]` 改为 `push/pull_request: [master]`（推 master 终于会跑流水线） |
+| `deploy.yml` | 由 `push: [main]` 改为 **`push: tags: v*` + 手动触发**，日常提交不再触碰生产 |
+| 部署门禁 | `deploy.yml` 新增 `test` job，`build-and-deploy` 通过 `needs: test` 依赖它 —— 测试不通过就不发布 |
+| 并发保护 | 新增 `concurrency: deploy-production`（`cancel-in-progress: false`），避免两次发布互相覆盖 |
+| 权限 | 显式声明 `permissions: packages: write`（推 GHCR 必需），并加 `environment: production` |
+| 镜像 tag | 除 `latest`、`<sha>` 外增加 `${{ github.ref_name }}`（tag 名），便于回滚到指定版本 |
+
+**P0-5 `/uploads/` 链路** —— 排查中发现的问题比原判更严重，共 4 个缺陷：
+
+1. **后端没有静态服务（根因）**：`app.ts` 只注册了 cors/jwt/multipart，数据库里存的 `/uploads/xxx.png` 无任何服务提供。
+   → 新增 `backend/src/plugins/static.ts`，把 `UPLOAD_DIR` 挂到 `/uploads/`（`list: false` 禁目录列表）。
+2. **写入路径与读取路径各写各的**：上传路由硬编码 `path.join(process.cwd(), 'uploads')`。
+   → 新增 `backend/src/shared/storage/paths.ts`（`resolveUploadDir()` / `UPLOAD_URL_PREFIX` / `toUploadUrl()`），写入方与静态服务共用，杜绝"写这里、URL 指那里"的静默 404；`UPLOAD_DIR` 补进 `env.ts` Zod 校验与 `.env.example`。
+3. **容器内写入路径落在持久化卷之外**：`WORKDIR /app` + `ENTRYPOINT node backend/dist/app.js` ⇒ cwd 为 `/app`，默认 `uploads` 解析成 `/app/uploads`；而 compose 把卷挂在 `/app/backend/uploads` —— **上传的图片不在卷里，容器重建即丢**。
+   → 两个 compose 显式设置 `UPLOAD_DIR=/app/backend/uploads`。
+4. **Nginx 缺 location 且会被正则抢占**：两个配置都补了 `location ^~ /uploads/` 反代到后端，用 `^~` 修饰符确保不被 `~* \.(png|jpg|…)$` 抢占。
+
+**顺带修掉的错误处理缺陷**：`toHttpError` 只认大写业务码，其他一律归 500。
+框架/插件自带的 4xx（静态服务拒绝路径穿越的 403、multipart 超限的 413）因此被吞成 500 —— 调用方无法区分"请求有问题"与"服务坏了"，还会污染监控的 5xx 计数。
+→ 现在尊重 `statusCode` 为 4xx 的错误，并映射到对应业务错误码。
+
+**验证方式（本地实测，非推断）**
+
+| 用例 | 结果 |
+|---|---|
+| `GET /uploads/probe.png` | `200` `image/png`（修复前必然 404） |
+| `GET /uploads/2026/09/nested.png`（子目录） | `200` `image/png` |
+| `GET /uploads/nope.png` | `404` |
+| `GET /uploads/`（目录列表） | `404` |
+| 路径穿越 `../package.json`、`%2e%2e`、`..%2f..%2f` | 修复前 `500` → 修复后 **`403 FORBIDDEN`**，响应体无内部信息泄露 |
+| `pnpm --filter backend build` / `test` | 通过（6 tests） |
+| GitHub Actions | 两个 workflow 均注册为 `active`；CI run #1 由 master 推送触发 |
+
+> ⚠️ 尚未验证项：本机 Docker 守护进程未运行、也没有 nginx 二进制，因此 **Nginx 配置未经 `nginx -t` 语法校验**，compose 的上传路径改动也无法本地起容器验证。上线前请在服务器执行 `sudo nginx -t`。
 
 ---
 
@@ -89,7 +130,7 @@
 
 ## 2. P0：必须完成
 
-### ☐ P0-1 统一 CI/CD 触发分支
+### ✅ P0-1 统一 CI/CD 触发分支（已完成）
 
 **问题**（已确认，见 §0-1）：workflow 监听 `main`，实际生产分支是 `master`，导致 CI/CD 形同虚设。
 
@@ -187,7 +228,7 @@ Route → DTO（校验）→ Service（业务）→ Repository（Prisma）→ Po
 
 ---
 
-### ☐ P0-5 修 `/uploads/` 访问链路（**真 bug，优先修**）
+### ✅ P0-5 修 `/uploads/` 访问链路（已完成 —— 实际比预想严重得多）
 
 **问题**（见 §0-7）：容器化 Nginx 配置里没有 `/uploads/`，且正则静态资源 location 会抢先匹配图片后缀 → 上传成功但页面 404。
 
