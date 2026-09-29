@@ -8,7 +8,7 @@
 # ── Stage: base —— 依赖安装（dev / build / production 共用）──────
 FROM node:20-slim AS base
 
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN corepack enable && corepack prepare pnpm@12 --activate
 
 # Debian 原生模块编译依赖（bcrypt）+ Prisma OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
