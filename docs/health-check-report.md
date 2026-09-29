@@ -242,24 +242,95 @@ COMMIT;
 
 ---
 
-## 6. 待你决策的几件事
+## 6. 你当时需要决策的几件事（**均已执行，见第 8 节**）
 
-1. **线上后端要不要部署到最新 master？**
-   现在线上是 9/14 的构建：`/metrics` 404、上传 magic number 校验、统一错误结构、thesis 分层重构全都没上线。
-   服务器**能连 GitHub**（实测 `git fetch` 1.9 秒成功，`ls-remote` 拿到 `ab1cc8a`），但本地 HEAD `3c1ddf8` 与远端 `ab1cc8a` **历史已分叉**（本地领先 104 / 落后 15，因为远端历史被重写过），所以只能 `git reset --hard origin/master`（会丢弃服务器上那 3 个未提交改动，其中 `backend/uploads/` 是上传的图片目录，需要保留）。
-   我建议的顺序：备份 → `git reset --hard origin/master` → `pnpm install` → `pnpm --filter backend build` → `pm2 reload jthub-api` → 回归冒烟。
-2. **修哪些 bug？** 我的优先级：3.1 邮件静默失败 → 3.2 订单通知 → 3.3 资料页空串 → 3.4 thesis 响应契约 → 3.5 分页校验 → 3.8 里的安全头/gzip（Nginx 层，几分钟）。
-3. **测试数据现在删还是等后端部署完再删？**（建议：等部署完、回归冒烟过了一遍再删，删之前再备份一次）
-4. **管理端正向流程还没测**：`/api/admin/*` 的写操作、thesis 图片上传（含 magic number 校验）、订单报价/状态流转，都需要管理员账号密码——你不方便给的话，可以我出步骤、你在管理端点着走。
+1. ~~线上后端要不要部署到最新 master？~~ → **已部署**（`3c1ddf8` → `bd02d0e`）
+2. ~~修哪些 bug？~~ → **六个全修**（邮件静默失败 / 订单通知 / 资料页空串 / thesis 响应契约 / 分页与坏 JSON / Nginx 加固）
+3. ~~测试数据何时删？~~ → **已按你的要求清理**（与基线逐表比对，见 8.5）
+4. ~~管理端正向流程怎么测？~~ → **用你给的 admin 账号全流程实测**（见 8.4）
 
 ---
 
 ## 7. 本次测试**没有**验证的（诚实清单）
 
-- 管理端登录后的所有正向流程（缺管理员密码）
 - 真实邮件送达（只验证到 Resend API 返回 200 + 域名已验证；没有真实收件箱可确认收信）
 - 微信/小程序端订单来源（`source: 'MINIPROGRAM'` 路径）
 - 容器化链路（镜像构建/运行、`docker-compose.prod.yml`、`deploy/monitoring/` 容器栈）：**本机没有 Docker 守护进程，线上也没跑容器**
 - 支付配置（`payment_config` 表为空）、优惠券/积分的完整核销闭环（需要管理端配合改状态）
 - 高并发/压测（只做了单次请求与限流验证）
 - 备份恢复演练（`restore.sh` 尚未编写，P1-5 待做）
+
+---
+
+## 8. 第二轮：修复、部署与复测（2026-09-30 01:26 ～ 01:32）
+
+### 8.1 代码修复（`bd02d0e`，本地 83 个测试全绿，CI 3 job 全绿）
+
+| # | 修复内容 | 关键实现 |
+|---|---|---|
+| ① | 验证码邮件静默失败 | `email.service.ts` 新增 `assertSendOk()`：检查 Resend 返回值里的 `error` 并抛异常（SDK 不抛是因为它把错误放在返回值里）；`send-code` 失败时**删掉刚写的验证码**（否则用户被 60 秒限流卡住却收不到码），并返回明确的 500 + 日志 |
+| ② | 新订单通知 | `notifyAdminNewOrder()` 现在**先写一条管理端站内通知**（不依赖外部服务），再尝试 Server酱；`SERVERCHAN_TOKEN` 为空时记 `SKIPPED` + 启动告警日志（原来直接静默 return）。新增枚举 `AdminNotifyType.NEW_ORDER` + 迁移文件 |
+| ③ | 资料页空串 | 后端把 `''` 一律当「未设置」并落库为 `null`；错误提示改成字段级（「昵称最多 20 个字」「手机号格式不正确」「年级取值不合法」） |
+| ④ | 毕设页空列表 | 前端兼容两种响应形状（`res.data?.activities ?? res.activities`），公告同理 |
+| ⑤ | 接口健壮性 | `/api/posts` 分页用 Zod 校验（`page ≥ 1`、`1 ≤ pageSize ≤ 50`）；`toHttpError` 识别 `FST_ERR_*` 与 `SyntaxError` → 400 友好文案；新增 `setNotFoundHandler` 统一 404 结构 |
+| ⑥ | Nginx 加固 | 安全头 snippet（HSTS / nosniff / X-Frame-Options / Referrer-Policy / Permissions-Policy，且在每个自定义了 `add_header` 的 location 里都 include —— 因为 nginx 的 `add_header` 是**覆盖**语义）、`gzip_types` 补齐 JS/CSS/JSON、开启 HTTP/2 |
+
+**新增回归测试 28 个（55 → 83）**：`tests/unit/errors.test.ts`（8）、`tests/unit/email-result.test.ts`（4）、`tests/integration/api-robustness.test.ts`（16）。
+
+### 8.2 后端部署到线上（可回滚）
+
+| 步骤 | 结果 |
+|---|---|
+| 部署前备份 | `predeploy_20260930_012830.sql.gz`（12570 字节）+ 旧 `dist` 打包 |
+| 代码 | `3c1ddf8` → **`bd02d0e`**（`git reset --hard origin/master`，服务器与远端历史已分叉，只能这样） |
+| 依赖/生成 | `pnpm install` 7.4s；`prisma generate` 成功 |
+| 数据库 | 生产库**没有 `_prisma_migrations` 表**（由 `db push` 管理），所以不能用 `migrate deploy`；改为手动 `ALTER TYPE "AdminNotifyType" ADD VALUE IF NOT EXISTS 'NEW_ORDER'` → 实测枚举变为 `ORDER_PAID, ORDER_CANCELLED, NEW_ORDER` |
+| 构建 + 重启 | `pnpm build` 成功 → `pm2 reload jthub-api`（PID 305089，重启计数 6） |
+| 回滚命令 | 已记录在 `/home/jia/backups/jituo/deploy_20260930_012830.txt` |
+
+**部署后冒烟（全部实测通过）**
+
+| 检查 | 结果 |
+|---|---|
+| `/health`（本机） | 200 `{"ok":true,...}` |
+| **`/metrics`（本机）** | **200**，Prometheus 文本格式（此前是 404，监控链路终于完整） |
+| `GET /api/posts?page=0` | **400** `{"code":"VALIDATION_ERROR","message":"page 不能小于 1"}`（原来 500） |
+| `POST /api/orders` 坏 JSON | **400**「请求体不是合法的 JSON」（原来 500） |
+| 未知路由 | **404 统一结构** `{success:false,error:{code:"NOT_FOUND",...}}` |
+| 首页 / 管理端 / thesis / lucky-wheel | 全部 200 |
+
+### 8.3 Nginx 加固实测
+
+| 项 | 实测 |
+|---|---|
+| 安全响应头 | `/api/config` 与静态 JS 均返回 5 个头（`strict-transport-security: max-age=31536000; includeSubDomains` 等） |
+| gzip | CSS 22473 → **5093 字节**；admin 主包 1226728 → **399659 字节**（约 1/3） |
+| HTTP/2 | `ALPN protocol: h2` |
+| 回归 | `/`、`/admin/`、`/health`、`/api/*`、`/thesis`、`/lucky-wheel` 全部正常，`/metrics` 对外仍 404 |
+
+> 踩坑记录：`systemctl reload nginx` 之后**立刻**发请求可能被尚未退出的旧 worker 接管（我连续踩了三次），验证必须等 1～2 秒或重试。
+
+### 8.4 管理端正向流程实测（admin 账号）
+
+全部通过：登录（错密码 401）→ 12 个只读接口 200 → 报价（空报价 400）→ 备注 → 订单详情 → 用户侧能看到新报价 → 建毕设项目（缺题目 400）→ 加进度（percent=150 → 400）→ **截图上传安全校验**（真 PNG 200 且公网可访问；文本改名 `.png` → 400 `FILE_TYPE_INVALID`；6MB → 413 `FILE_TOO_LARGE`）→ 帖子审核通过 → 用户评论从 403「审核中」变成 201 → 置顶/取消置顶。
+
+**管理端监控是真数据**：`/api/admin/system/status` 返回 `promAvailable: true` 与真实 CPU/内存，`/api/admin/system/chart` 返回 60 分钟 CPU 时序 —— 说明管理端大屏确实在消费本机 Prometheus（虽然设备上没有 Grafana）。
+
+**② 通知修复的端到端验证**：下单前 `admin_notifications` 0 行 → 下单后管理端接口返回 `unreadCount: 1`、`type: NEW_ORDER`、摘要含订单号/课程/类型/截止时间/微信；同时 `notifications` 表记录 `SERVERCHAN | NEW_ORDER | SKIPPED | SERVERCHAN_TOKEN 未配置`。
+
+**订单状态流转完整走通**：`PENDING → IN_PROGRESS`（缺预计交付时间会被 400 拦下，填了才放行）→ `COMPLETED`（写 3 条状态历史）→ 积分入账。
+
+### 8.5 测试数据清理（已执行）
+
+清理前再备份一次（`precleanup_20260930_013137.sql.gz`，13018 字节），然后单事务删除：1 个测试用户、2 个订单、4 条状态历史、1 条通知日志、1 条管理端通知、1 个测试帖、1 条评论、1 条抽奖、1 条积分流水+余额、1 个测试毕设项目+进度+截图记录（并删除对应上传文件）、3 条验证码。
+
+**清理后与测试前基线逐表比对**：30 张表全部一致，唯一差异是 `email_verifications` 4 → 3（顺手删掉了那条历史遗留、从未使用的 `test-check@jituo.online` 验证码，第 5 节清单里标过「可选」）。真实业务数据原样：毕设项目 8 / 进度 24 / 图片 16 / 用户 2 / 文章 3 / 公告 1 / 订单 0。
+
+### 8.6 第二轮新发现（**尚未修**，等你决定）
+
+| 级别 | 问题 | 证据 |
+|---|---|---|
+| 🟠 中 | **管理端订单页填的「奖励积分」根本不会真的发放**：`awardPoints()` 是按 `point_rules` 表的 `eventType` 查规则发分的，而生产库**没有 `ORDER_COMPLETED` 规则** → `getRulePoints` 返回 null → 静默不发。我实测填 `rewardPoints: 50`，订单上记了 50，用户实际只拿到 30 分（那 30 分来自 `NEW_USER_FIRST_ORDER` 首单规则） | 见 8.4 与积分流水 |
+| 🟡 低 | 状态词表有历史包袱：`ACCEPTED`/`CLOSED` 在 Prisma 枚举、统计接口、通知文案里存在，但管理端 UI 的流转表只用 `CREATED/PENDING/IN_PROGRESS/COMPLETED/CANCELLED`，后端 `updateStatusSchema` 也只接受后者 → 传 `ACCEPTED` 会 400（**不是 bug**，是词表没清干净，建议统一或明确标注为兼容值） | `admin/src/pages/orders/index.vue:177` vs `order.admin.routes.ts:47` |
+| 🟡 低 | `PENDING → PENDING` 这类无效流转的报错文案是「待接单 不能变更为 待接单」，读起来像废话，应提示「订单已经是待接单状态」 | 实测 422 响应 |
+| 🟡 低 | `SERVERCHAN_TOKEN` 仍为空 → 微信推送依旧不会发（现在至少有站内通知兜底）。想收微信提醒需要你去 Server酱 申请一个 token 填进 `.env` | 见 8.4 |
