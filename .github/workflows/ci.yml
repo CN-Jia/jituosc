@@ -54,7 +54,8 @@ jobs:
           DATABASE_URL: postgresql://jituo:jituo_test@localhost:5432/jituo_test
           JWT_SECRET: ci-test-jwt-secret-at-least-16-chars
           ADMIN_USERNAME: admin
-          ADMIN_PASSWORD_HASH: $2b$10$ci-test-placeholder-hash
+          # 格式合法的 bcrypt 占位哈希：config/env.ts 启动时会校验格式，非法值直接失败
+          ADMIN_PASSWORD_HASH: $2b$10$T9vuXJr0Pmq3BrCUrd/4iuccBwj2HCcGf1Rlf2PfWHaykonirwkT.
         run: pnpm test
 
   # ── 类型检查 ──────────────────────────────────────────────
@@ -87,3 +88,58 @@ jobs:
       - name: TypeScript check (frontend)
         working-directory: frontend
         run: npx vue-tsc --noEmit
+
+  # ── 容器配置检查（Dockerfile lint + compose 校验）─────────────
+  # 本地没有 Docker 守护进程时这些检查跑不了，放 CI 上做，避免改坏 Dockerfile/compose 才发现
+  docker-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Lint backend Dockerfile
+        uses: hadolint/hadolint-action@v3
+        with:
+          dockerfile: backend/Dockerfile
+
+      - name: Lint nginx Dockerfile
+        uses: hadolint/hadolint-action@v3
+        with:
+          dockerfile: Dockerfile.nginx
+
+      - name: Validate compose files
+        run: |
+          set -e
+          # 生产 compose 需要 backend/.env 存在才能通过校验（刻意如此：缺配置就构建不出来）。
+          # 这里特意把 bcrypt 哈希里的 $ 写成 $$，并断言不出现插值警告 ——
+          # compose 会把 $2b$10$xxx 中的 $xxx 当作变量吃掉，哈希被截断 → 管理员永远登不上，
+          # 因此把"插值警告"直接当失败拦下来（详见 backend/src/config/env.ts 的注释）。
+          cat > backend/.env <<'EOF'
+          DATABASE_URL="postgresql://ci:ci@localhost:5432/ci"
+          JWT_SECRET="ci-secret-at-least-16-chars"
+          ADMIN_USERNAME="admin"
+          ADMIN_PASSWORD_HASH="$$2b$$10$$ciphertext"
+          EOF
+
+          check() {
+            name="$1"; shift
+            if ! out=$("$@" 2>&1); then
+              echo "$out"
+              echo "::error::$name 校验失败"
+              exit 1
+            fi
+            if echo "$out" | grep -q 'variable is not set'; then
+              echo "$out"
+              echo "::error::$name 出现 compose 变量插值警告（.env 里的 \$ 需要写成 \$\$）"
+              exit 1
+            fi
+            echo "$name OK"
+          }
+
+          check "docker-compose.prod.yml" docker compose -f docker-compose.prod.yml config --quiet
+          check "docker-compose.dev.yml" docker compose -f docker-compose.dev.yml config --quiet
+          check "monitoring" env GRAFANA_ADMIN_PASSWORD=ci-placeholder \
+            docker compose -f deploy/monitoring/docker-compose.monitoring.yml config --quiet
+
+          rm -f backend/.env

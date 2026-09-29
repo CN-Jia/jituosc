@@ -48,7 +48,10 @@ services:
       JWT_SECRET: dev-jwt-secret-key-at-least-16-chars
       JWT_EXPIRES_IN: 7d
       ADMIN_USERNAME: admin
-      ADMIN_PASSWORD_HASH: $2b$10$PLACEHOLDER
+      # 注意：compose 会对 $ 做变量插值，bcrypt 哈希里的 $ 必须写成 $$，
+      # 否则 $PLACEHOLDER 会被替换成空串、哈希被破坏（只给一条 warning，很难发现）。
+      # 这里只是占位：要用管理员登录请替换成真实 bcrypt 哈希。
+      ADMIN_PASSWORD_HASH: "$$2b$$10$$PLACEHOLDER"
       ADMIN_WECHAT_ID: Jt--04
       APP_BASE_URL: http://localhost:3000
     # 必须用 pnpm 跑包脚本：tsx 的可执行文件在 backend/node_modules/.bin，

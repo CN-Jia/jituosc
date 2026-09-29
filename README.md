@@ -309,13 +309,19 @@ Prometheus（抓 127.0.0.1:3000/metrics 与 127.0.0.1:9100）
 |---|---|
 | `DATABASE_URL` | PostgreSQL 连接串（必填） |
 | `JWT_SECRET` | JWT 签名密钥，≥16 字符（必填） |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | 管理员账号（bcrypt 哈希，必填） |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` | 管理员账号（bcrypt 哈希，必填；启动时会校验哈希格式） |
 | `PORT` / `NODE_ENV` / `APP_BASE_URL` | 运行配置 |
 | `UPLOAD_DIR` | 上传目录（默认 `uploads`；容器内需由 compose 指定为卷路径） |
 | `SERVERCHAN_TOKEN` | Server酱推送（可选，新订单微信通知） |
 | `RESEND_API_KEY` / `MAIL_FROM` | 邮件服务（可选，未配置时验证码打印到控制台） |
 | `ADMIN_WECHAT_ID` | 展示给用户的联系微信号 |
 | `PROMETHEUS_URL` | 监控大屏的数据源（默认 `http://localhost:9090`） |
+
+> ⚠️ **用 Docker Compose 部署时，bcrypt 哈希里的每个 `$` 都要写成 `$$`。**
+> Compose 会对 `env_file` 的值做变量插值，`$2b$10$xxxx` 会被替换成 `$2b$10`（只留一条 warning），
+> 结果是"服务起来了、管理员却永远登不上"。写成 `$$2b$$10$$xxxx` 即可；
+> 后端会把 `$$` 还原成 `$`，所以同一份 `.env` 在 PM2/dotenv 路径下也能直接用。
+> 哈希格式非法时**启动即失败**，不会留下这种静默故障。
 
 ## 测试
 

@@ -192,6 +192,10 @@ SERVERCHAN_TOKEN="SCT_your_actual_token"
 ADMIN_USERNAME="admin"
 # 生成密码 Hash（在服务器本地执行）:
 # cd /var/www/jituo/backend && node -e "const b=require('bcrypt'); b.hash('你的密码',10).then(console.log)"
+# ⚠️ 若改用 Docker Compose 部署（本文件是 PM2 方案，不受影响）：
+#    compose 会对 env_file 的值做变量插值，哈希里的 $ 会被吃掉，导致管理员登不上，
+#    必须把每个 $ 写成 $$，例如 ADMIN_PASSWORD_HASH="$$2b$$10$$..."
+#    （后端会把 $$ 还原成 $；哈希格式非法时启动即失败，不会静默带病运行）
 ADMIN_PASSWORD_HASH="$2b$10$..."
 
 # ── 管理员微信号（展示给用户的联系方式）─────────────────────

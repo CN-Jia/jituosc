@@ -229,6 +229,54 @@ README 按路线图要求重写为 12 节（含锚点目录）：项目简介 / 
 | 配置校验 | 9 个 YAML（监控栈 5 + compose 2 + workflow 2）全部解析通过；Grafana 仪表盘 JSON 有效（7 面板、id 唯一、数据源引用统一） |
 | **未验证** | 本机 Docker 守护进程未运行、也无法访问 Docker Hub → **镜像拉取与 Prometheus/Grafana 实际运行未验证**；PromQL 未经 `promtool` 校验 |
 
+### 已完成：Docker 验证（本机无守护进程，尽量做到最好）
+
+**结论：本机跑不了 Docker，镜像构建与容器运行仍未验证。**
+
+| 检查项 | 结果 |
+|---|---|
+| docker CLI | ✅ 29.8.0（WinGet 装的独立 CLI） |
+| Docker 守护进程 | ❌ `\\.\pipe\docker_engine` 不存在 |
+| Docker Desktop | ❌ 未安装 |
+| compose 插件 | ❌ 无（`docker compose` → unknown command），也没有 docker-compose v1 |
+| WSL2 | ❌ 未安装 |
+| `registry-1.docker.io` / `auth.docker.io` / `ghcr.io` | ✅ 经本机代理均可达 → 装上守护进程后拉镜像没问题 |
+
+**过程中两个障碍及解决（换机器可复用）**
+
+1. 从 GitHub Releases 下载资源报 `schannel: CRYPT_E_REVOCATION_OFFLINE` —— 不是网络不通，而是 **TLS 吊销检查连不上吊销服务器**；加 `--ssl-no-revoke` 即通（证书链仍然校验）。
+   ⚠️ 这个坑此前**误导过判断**：`ghcr.io` / `auth.docker.io` 一度被判为"不可达"，其实是同一个原因，加上该参数后分别是 401 / 200（即正常可达）。
+2. Docker Hub 的 API 本机不可达 → 镜像版本号改从 GitHub Releases API 取。
+
+**没有守护进程也做到了的真实验证**
+
+| 手段 | 结果 |
+|---|---|
+| compose v2 单文件二进制（下到临时目录直接运行，**未安装、未改 PATH**） | `docker compose config` 通过：`docker-compose.dev.yml` 与 `deploy/monitoring/…` 均 exit 0；`docker-compose.prod.yml` 在缺 `backend/.env` 时**刻意失败**（缺配置就不该能构建），补上后通过 |
+| **hadolint** v2.15.1 | 两个 Dockerfile **0 告警**：修掉了 DL3025（HEALTHCHECK 非 JSON 形式 ×2）、DL3059（连续 RUN）、DL3008/DL3018（未锁 apt/apk 版本 → 按要求写了**带理由**的 `hadolint ignore`，而不是无脑锁版本） |
+| 解析结果核对 | `docker compose config` 确认 `UPLOAD_DIR: /app/backend/uploads` —— P0-5 的修复确实落到容器环境变量里 |
+
+**又抓到一个会静默破坏管理员登录的真 bug**
+
+`docker compose` 会对 `env_file` 的值做变量插值：bcrypt 哈希 `$2b$10$xxxx` 里的 `$xxxx` 被当变量替换成空串 → 哈希被截断为 `$2b$10`，**服务照常启动、管理员永远登不上**（只给一条 warning）。
+试过 `env_file: format: raw` 来关掉插值，但它会把引号也当成值的一部分（`DATABASE_URL` 变成带引号的字符串），反而会弄坏现有 `.env`，故未采用。
+
+处理（一并做了四处）：
+
+1. `backend/src/config/env.ts`：把 `$$` 还原成 `$`，**并在启动时校验 bcrypt 格式**（60 字符正则）——非法值直接启动失败，并给出「生成命令 + compose 路径需写成 `$$`」的提示，**把静默故障变成显式错误**
+2. `.env.example`、`README.md`、`deploy/DEPLOY.md`：写明 compose 路径下 `$` 需写作 `$$`
+3. `docker-compose.dev.yml` 自己的占位哈希也中招（`$2b$10$PLACEHOLDER` 被吃掉）→ 改为 `$$` 转义
+4. `ci.yml` / `deploy.yml` / `tests/setup.ts` 的 CI 占位哈希换成**真实合法的 bcrypt**（否则会被新的格式校验拦下）
+
+**把验证固化进 CI**（否则只是一次性检查）：`ci.yml` 新增 `docker-config` job
+
+- hadolint 校验两个 Dockerfile
+- 用真实 compose 校验三个 compose 文件，并把**「插值警告」当失败拦下** —— 正是上面那个 bug 的回归防线，并附反例测试
+- 该脚本已在本机用 bash + compose 二进制实跑验证：**正例 exit 0；反例（故意不转义）被 `::error::` 拦下 exit 1**
+
+> 想让镜像构建也进入 CI：现在 `deploy.yml` 只在打 tag/手动触发时构建镜像，
+> 如需每次推送都验证 build，可在 `docker-config` job 里加 `docker build`（会让 CI 变慢数分钟）。
+
 ---
 
 ## 1. 最终形态

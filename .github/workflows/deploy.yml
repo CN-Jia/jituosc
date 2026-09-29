@@ -67,7 +67,8 @@ jobs:
           DATABASE_URL: postgresql://jituo:jituo_test@localhost:5432/jituo_test
           JWT_SECRET: ci-test-jwt-secret-at-least-16-chars
           ADMIN_USERNAME: admin
-          ADMIN_PASSWORD_HASH: $2b$10$ci-test-placeholder-hash
+          # 格式合法的 bcrypt 占位哈希：config/env.ts 启动时会校验格式，非法值直接失败
+          ADMIN_PASSWORD_HASH: $2b$10$T9vuXJr0Pmq3BrCUrd/4iuccBwj2HCcGf1Rlf2PfWHaykonirwkT.
         run: pnpm test
 
   # ── 构建镜像并部署 ──────────────────────────────────────────

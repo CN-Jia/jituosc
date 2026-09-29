@@ -11,6 +11,9 @@ FROM node:20-slim AS base
 RUN corepack enable && corepack prepare pnpm@12 --activate
 
 # Debian 原生模块编译依赖（bcrypt）+ Prisma OpenSSL
+# 不锁 apt 包版本的理由：这些是构建期工具（编译器 / openssl），版本随 node:20-slim 基础镜像走；
+# 锁死具体版本反而会在基础镜像更新后构建失败。运行时依赖由 pnpm-lock.yaml 精确锁定。
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ openssl \
   && rm -rf /var/lib/apt/lists/*
@@ -61,6 +64,6 @@ ENV PORT=3000
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health',r=>{process.exit(r.statusCode===200?0:1)})"
+  CMD ["node", "-e", "require('http').get('http://localhost:3000/health',r=>{process.exit(r.statusCode===200?0:1)})"]
 
 ENTRYPOINT ["node", "backend/dist/app.js"]
