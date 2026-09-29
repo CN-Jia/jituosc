@@ -184,9 +184,9 @@ README 按路线图要求重写为 12 节（含锚点目录）：项目简介 / 
 | 4 | 文档里的模型数过时（曾写 16 / 25） | 实测 schema 为 **30 个模型**，README 已按实际写 |
 | 5 | 监控现状描述容易夸大 | README 如实写：管理端大屏**已消费** Prometheus 的 node_exporter 指标（含 24h/7天时序），但**后端无 `/metrics`**、监控栈部署清单未纳入仓库 |
 
-**⚠️ 需要你确认的一件事**：生产当前跑的是哪套部署（宿主机 Nginx + PM2，还是容器）？
-修好的 `location = /health` 需要同步到服务器上的 Nginx 配置并 `nginx -t && reload`，
-之后 `https://jituo.online/health` 应返回后端 JSON 而不是前端页面。
+**✅ 已确认（登录服务器实测，不再是猜测）**：生产跑的是**宿主机 Nginx + PM2**，没有容器 —— 详见「已完成：生产环境实测与线上数据补充」。
+修好的 `location = /health` 仍需同步到服务器上的 Nginx 配置并 `nginx -t && reload`（**待确认后执行**），
+之后 `https://jituo.online/health` 才会返回后端 JSON 而不是前端页面。
 
 **验证**：`node "$env:TEMP\yamlcheck\check.js"` 校验两个 workflow 仍可解析；实测后端返回体为 `{"ok":true,...}`（会被新检查判定为健康），而 SPA 回退的 HTML 不会被误判（判定为不健康）；根目录 `pnpm db:generate` 等新脚本可执行。
 
@@ -276,6 +276,81 @@ README 按路线图要求重写为 12 节（含锚点目录）：项目简介 / 
 
 > 想让镜像构建也进入 CI：现在 `deploy.yml` 只在打 tag/手动触发时构建镜像，
 > 如需每次推送都验证 build，可在 `docker-config` job 里加 `docker build`（会让 CI 变慢数分钟）。
+
+---
+
+### 已完成：生产环境实测与线上数据补充
+
+#### 一、生产环境实测（首次登录服务器核对，修正了文档里的假设）
+
+| 项 | 实测结果 |
+|---|---|
+| 部署方式 | **PM2**（进程名 `jthub-api`）+ **宿主机 Nginx**；服务器上**没有**在跑 Docker Compose |
+| 代码目录 | `/home/jia/jituosc`（**不是**文档里写的 `/var/www/jituo`） |
+| 数据库 | **宿主机 PostgreSQL 14.24**，库 `jthub_prod`、用户 `jthub`（文档与旧脚本里曾写 `jituo_prod` / `jituo`） |
+| 后端监听 | 仅 `127.0.0.1:3000`，由 Nginx 反代对外 |
+| 权限 | 普通用户 `jia` **无法访问 `docker.sock`**；`sudo` 可用（需密码） |
+
+结论：`docker-compose.prod.yml` 在这台机器上是「**未启用**」状态，README 里「生产 = Docker Compose」的写法与线上实际不符。
+口径已按实际修正：**Compose 是仓库内的标准 / 可迁移部署路径，PM2 + 宿主机 Nginx 是当前真实运行方式**，两者互斥（都占 80/443/3000）。
+
+#### 二、线上数据补充（要求：先备份、不删数据、只补空白）
+
+**先备份再动手**：`/home/jia/backups/jituo/jthub_prod_20260930_005528.sql.gz`（8.9K）+ `baseline_20260930_005528.txt`；
+**已验证 dump 内各表行数与线上一致**（thesis 相关 8 / 24 / 16 / 4、site_notices 1、users 2），确认备份有效后才执行写入。
+
+**为什么新写 `backend/prisma/seed-demo.ts` 而不动 `seed.ts`**：原 `seed.ts` 会 upsert/覆盖，可能动到已有数据；
+新脚本**只增不改**（`ensure()` 已存在即跳过）、带 `--dry-run`、前后各打一次 `count(*)` 快照。
+**用 `count(*)` 而不是 `pg_stat_user_tables.n_live_tup`** —— 后者统计信息滞后，曾让它误报「一条都没写」，差点得出错误结论。
+
+| 表 | 条数 | 说明 |
+|---|---|---|
+| `order_types` | 3 | 下单可选类型 |
+| `activities` | 2 | 活动（含幸运转盘） |
+| `activity_popup` | 1 | 转盘弹窗配置（**是否开启待你决定**） |
+| `wheel_prizes` | 8 | 转盘奖项 |
+| `point_rules` | 3 | 积分规则（下单 50 / 消费 100 / 评价 30） |
+| `products` | 3 | 商品 |
+| `shop_items` | 3 | 积分商城商品 |
+| `promo_coupons` | 2 | 百分比券（`value` = 折扣百分比，如 `10` 表示 9 折） |
+| `posts` | 3 | 文章（状态 `APPROVED`，首页可见） |
+| `carousels` | 3 | 轮播（配图用 `/uploads/case-placeholder-N.svg`） |
+
+合计 31 条。**幂等性已实测**：重跑输出「新建 0 条，跳过 31 条」。
+
+**受保护的表前后无变化**：thesis 8 / 24 / 16 / 4、users 2、site_notices 1 —— 你未保存的毕设进度查询数据不受影响。
+
+**公开接口实测**（数据确实生效，不只是写进了库）：`/api/order-types`、`/api/carousel`、`/api/activities`、`/api/posts` 均正常返回；
+`/uploads/case-placeholder-1.svg` → `200 image/svg+xml`。
+
+**有意没写的数据（避免为了「看起来满」而造假）**
+
+| 表 | 原因 |
+|---|---|
+| `orders` / `notifications` / `feedback` | 会污染管理端的真实统计口径 |
+| `payment_config` | 需要真实收款码图片，编不出来 |
+| `ORDER_COMPLETED` / `ADMIN_ADJUST` / `REDEEM_*` 积分规则 | 代码里没有默认值，凭空编一个数**会改变系统行为** |
+
+#### 三、过程中抓到的真 bug
+
+`deploy/backup.sh` **硬编码了 `jituo_prod` / `jituo`**，而线上实际是 `jthub_prod` / `jthub` ——
+也就是说**这个备份脚本此前一直在备份一个不存在的库**（「有备份」是假象）。修复：
+
+1. 库名与用户改为从 `backend/.env` 的 `DATABASE_URL` 解析；`APP_DIR` / `BACKUP_DIR` / `KEEP_DAYS` 可用环境变量覆盖
+2. 增加产物校验：`gzip -t` + 非空检查，dump 失败直接报错退出，而不是留下一个坏文件让人以为备份成功
+3. 修复后实跑产出 `/home/jia/backups/jituo/jthub_prod_20260930_005856.sql.gz`（12K，`gzip -t` 通过）
+
+#### 四、待办与未验证（诚实记录）
+
+| 项 | 状态 |
+|---|---|
+| `location = /health` 同步到线上 Nginx（`sudo nginx -t && reload`） | ⏳ 待你确认 |
+| 新首页 / 深色主题设计部署到线上（需在服务器构建前端） | ⏳ 待你确认 |
+| 幸运转盘弹窗保持开启还是关闭 | ⏳ 待你确认 |
+| 镜像构建与容器运行、Prometheus/Grafana 实跑、PM2 重启流程 | ❌ 仍未实测 |
+
+> **Git 注意**：`backend/prisma/seed-demo.ts` 与 `deploy/backup.sh` 是直接传到服务器仓库目录的。
+> 如果服务器上 `git pull` 报本地改动冲突，先 `git checkout -- backend/prisma/seed-demo.ts deploy/backup.sh` 再拉取（服务器上内容与仓库提交一致）。
 
 ---
 
