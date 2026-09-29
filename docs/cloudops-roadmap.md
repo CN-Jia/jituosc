@@ -166,6 +166,30 @@
 
 验证：`node --check deploy/ecosystem.config.js` 通过，且 `require()` 后关键字段不变（name / script / instances / exec_mode / env_production）；两个 compose 文件仍能被 YAML 解析器解析。**PM2 本身未实测**（本机未安装 pm2）。
 
+### 已完成修复记录（P0-6 README 全面重写）
+
+README 按路线图要求重写为 12 节（含锚点目录）：项目简介 / 技术栈 / **系统架构图**（运行时 + 部署拓扑两张 ASCII 图）/ 功能模块 / 工程结构 / 本地开发 / 部署 / **运维能力（独立成节）** / 环境变量 / 测试 / 分支策略与 CI/CD / 已知不足与后续计划。
+
+- **运维能力**单独成节：健康检查、文件上传安全、数据备份、监控、日志与资源限制、安全基线
+- **已知不足**如实列出：`forum`/`content`/`marketing` 未分层、备份未上 OSS 且无 `restore.sh`、监控栈未纳管、图片仍在本地盘、PG 未容器化、不用 Redis、K8s 不替换生产
+- CI 状态徽章；截图位置留了 TODO HTML 注释（仓库内无截图资源，不放假链接）
+
+**写 README 时发现并修掉的问题**（这些都是"文档要求准确"逼出来的）
+
+| # | 问题 | 处理 |
+|---|---|---|
+| 1 | **生产的 `/health` 被前端 SPA 回退接管**：实测 `https://jituo.online/health` 返回的是前端 HTML，而 `/api/config` 正常返回 JSON → `deploy.yml` 里的 `curl -f .../health` **在后端挂掉时也会通过**，健康检查形同虚设 | ① `deploy/nginx/jituo.conf` 补 `location = /health`（容器配置本来就有，宿主机配置漏了）；② `deploy.yml` 健康检查改为**校验响应体含 `"ok":true`** + 10 次重试 |
+| 2 | 根目录缺 `dev:frontend` / `build:frontend` / `db:*` 脚本，README 无法统一到根目录命令 | 补齐 5 个脚本别名 |
+| 3 | `admin/vite.config.ts` 的 dev 代理缺 `/uploads`，本地开发时管理端看不到上传的截图 | 补上代理 |
+| 4 | 文档里的模型数过时（曾写 16 / 25） | 实测 schema 为 **30 个模型**，README 已按实际写 |
+| 5 | 监控现状描述容易夸大 | README 如实写：管理端大屏**已消费** Prometheus 的 node_exporter 指标（含 24h/7天时序），但**后端无 `/metrics`**、监控栈部署清单未纳入仓库 |
+
+**⚠️ 需要你确认的一件事**：生产当前跑的是哪套部署（宿主机 Nginx + PM2，还是容器）？
+修好的 `location = /health` 需要同步到服务器上的 Nginx 配置并 `nginx -t && reload`，
+之后 `https://jituo.online/health` 应返回后端 JSON 而不是前端页面。
+
+**验证**：`node "$env:TEMP\yamlcheck\check.js"` 校验两个 workflow 仍可解析；实测后端返回体为 `{"ok":true,...}`（会被新检查判定为健康），而 SPA 回退的 HTML 不会被误判（判定为不健康）；根目录 `pnpm db:generate` 等新脚本可执行。
+
 ---
 
 ## 1. 最终形态
@@ -343,7 +367,7 @@ location /uploads/ {
 
 ---
 
-### ☐ P0-6 README 全面更新
+### ✅ P0-6 README 全面更新（已完成）
 
 README 是这个项目给 HR / 技术面的第一入口，**结构比内容更重要**。
 

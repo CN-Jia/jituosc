@@ -5,11 +5,17 @@
   "description": "作业/毕设需求对接与进度追踪系统",
   "scripts": {
     "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter jituo-frontend dev",
     "dev:admin": "pnpm --filter admin dev",
+    "build:backend": "pnpm --filter backend build",
+    "build:frontend": "pnpm --filter jituo-frontend build",
+    "build:admin": "pnpm --filter admin build",
     "test": "pnpm --filter backend test",
     "test:coverage": "pnpm --filter backend test:coverage",
-    "build:backend": "pnpm --filter backend build",
-    "build:admin": "pnpm --filter admin build"
+    "db:generate": "pnpm --filter backend db:generate",
+    "db:migrate": "pnpm --filter backend db:migrate",
+    "db:seed": "pnpm --filter backend db:seed",
+    "db:studio": "pnpm --filter backend db:studio"
   },
   "workspaces": ["backend", "frontend", "admin"]
 }

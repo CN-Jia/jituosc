@@ -156,7 +156,23 @@ jobs:
             docker image prune -af
 
             echo ">>> Health check..."
-            sleep 3
-            curl -f http://localhost:80/health || { echo "Health check failed"; exit 1; }
+            # 必须校验响应体，不能只看 HTTP 200：
+            # 若 /health 被前端的 SPA 回退接管，后端挂掉时同样返回 200 + index.html，
+            # 健康检查会永远通过。这里同时加几次重试，避免容器刚起还没就绪就误判失败。
+            ok=0
+            for i in $(seq 1 10); do
+              body=$(curl -fsS --max-time 5 http://localhost:80/health || true)
+              if echo "$body" | grep -q '"ok":true'; then
+                echo "Health check passed: $body"
+                ok=1
+                break
+              fi
+              echo "attempt $i/10 not ready yet: ${body:-<empty>}"
+              sleep 3
+            done
+            if [ "$ok" != "1" ]; then
+              echo "Health check failed: /health 未返回后端 JSON（检查 nginx 是否把 /health 反代到后端）"
+              exit 1
+            fi
 
             echo ">>> Deploy completed successfully!"
