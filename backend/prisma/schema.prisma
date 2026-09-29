@@ -1,0 +1,673 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 用户 ====================
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  nickname      String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  passwordHash  String
+  phone         String?
+  wechatId      String?
+  grade         Grade?
+  isActive      Boolean   @default(true)
+  loginAttempts Int       @default(0)
+  lockUntil     DateTime?
+
+  // 邀请系统
+  inviteCode  String? @unique
+  invitedById String?
+  invitedBy   User?   @relation("Invitations", fields: [invitedById], references: [id])
+  invitees    User[]  @relation("Invitations")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders        Order[]
+  comments      Comment[]
+  feedbacks     Feedback[]
+  posts         Post[]
+  notifications Notification[]
+  pointBalance  PointBalance?
+  pointLogs     PointLog[]
+  redeemOrders  RedeemOrder[]
+  coupons       Coupon[]
+  productOrders ProductOrder[]
+  extraSpins    Int      @default(0)
+  spinResults   SpinResult[]
+
+  @@index([email])
+  @@index([username])
+  @@index([inviteCode])
+  @@map("users")
+}
+
+// ==================== 邮箱验证码 ====================
+model EmailVerification {
+  id        String    @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, code])
+  @@map("email_verifications")
+}
+
+// ==================== 需求类型 ====================
+model OrderType {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  price           String
+  sortOrder       Int      @default(0)
+  isActive        Boolean  @default(true)
+  pointRewardRate Decimal? @db.Decimal(5, 4)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("order_types")
+}
+
+// ==================== 活动/公告 ====================
+model Activity {
+  id        String       @id @default(cuid())
+  title     String
+  content   String       @db.Text
+  type      ActivityType
+  startAt   DateTime
+  endAt     DateTime?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([isActive, startAt])
+  @@map("activities")
+}
+
+enum ActivityType {
+  PROMO
+  NOTICE
+}
+
+// ==================== 订单 ====================
+model Order {
+  id            String      @id @default(cuid())
+  orderNo       String      @unique
+  courseName    String
+  grade         Grade
+  orderTypeId   String
+  orderType     OrderType   @relation(fields: [orderTypeId], references: [id])
+  deadline      DateTime
+  contactWechat String
+  status        OrderStatus @default(PENDING)
+  source        OrderSource @default(PC)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  adminNote        String?    @db.Text
+  quotedPrice      String?
+  estimatedDelivery DateTime?
+  rewardPoints     Int?
+  redeemItemId     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  statusHistory StatusHistory[]
+  notifications Notification[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("orders")
+}
+
+enum Grade {
+  FRESHMAN
+  SOPHOMORE
+  JUNIOR
+}
+
+enum OrderStatus {
+  CREATED
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+  CANCELLED
+}
+
+enum OrderSource {
+  MINIPROGRAM
+  PC
+}
+
+// ==================== 状态变更历史 ====================
+model StatusHistory {
+  id         String       @id @default(cuid())
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id])
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  operator   String
+  remark     String?
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+// ==================== 论坛帖子 ====================
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  summary     String?
+  content     String     @db.Text
+  cover       String?
+  type        PostType   @default(DISCUSSION)
+  status      PostStatus @default(PENDING)
+  isPinned    Boolean    @default(false)
+  board       String     @default("exchange")
+  authorId    String?
+  author      User?      @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments Comment[]
+
+  @@index([status, isPinned, createdAt])
+  @@index([board, status, createdAt])
+  @@map("posts")
+}
+
+enum PostType {
+  ANNOUNCEMENT
+  DISCUSSION
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==================== 评论 ====================
+model Comment {
+  id       String  @id @default(cuid())
+  postId   String
+  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User    @relation(fields: [userId], references: [id])
+  content  String  @db.Text
+  isHidden Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+  @@map("comments")
+}
+
+// ==================== 用户反馈 ====================
+model Feedback {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  type        FeedbackType
+  title       String
+  description String         @db.Text
+  status      FeedbackStatus @default(PENDING)
+  adminReply  String?        @db.Text
+  repliedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("feedbacks")
+}
+
+enum FeedbackType {
+  BUG
+  SUGGESTION
+  OTHER
+}
+
+enum FeedbackStatus {
+  PENDING
+  REPLIED
+  RESOLVED
+}
+
+// ==================== 历代作品轮播 ====================
+model Carousel {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  courseName  String
+  orderType   String
+  completedAt DateTime
+  review      String?
+  orderNoMask String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("carousels")
+}
+
+// ==================== 积分余额 ====================
+model PointBalance {
+  id             String @id @default(cuid())
+  userId         String @unique
+  user           User   @relation(fields: [userId], references: [id])
+  totalPoints    Int    @default(0)
+  frozenPoints   Int    @default(0)
+  lifetimeEarned Int    @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("point_balances")
+}
+
+// ==================== 积分明细 ====================
+model PointLog {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  eventType PointEventType
+  delta     Int
+  balance   Int
+  remark    String?
+  refId     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("point_logs")
+}
+
+enum PointEventType {
+  INVITE_REGISTER
+  INVITE_FIRST_ORDER
+  NEW_USER_FIRST_ORDER
+  ORDER_COMPLETED
+  ADMIN_ADJUST
+  REDEEM_FREEZE
+  REDEEM_DEDUCT
+  REDEEM_UNFREEZE
+}
+
+// ==================== 积分规则 ====================
+model PointRule {
+  id        String         @id @default(cuid())
+  eventType PointEventType @unique
+  points    Int
+  enabled   Boolean        @default(true)
+  remark    String?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("point_rules")
+}
+
+// ==================== 积分商城商品 ====================
+model ShopItem {
+  id          String       @id @default(cuid())
+  name        String
+  description String?      @db.Text
+  coverUrl    String?
+  type        ShopItemType
+  pointsCost  Int
+  stock       Int          @default(-1)
+  discountAmt Decimal?     @db.Decimal(10, 2)
+  isActive    Boolean      @default(true)
+  sortOrder   Int          @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  redeemOrders RedeemOrder[]
+
+  @@map("shop_items")
+}
+
+enum ShopItemType {
+  SERVICE
+  COUPON
+}
+
+// ==================== 兑换订单 ====================
+model RedeemOrder {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
+  shopItemId   String?
+  shopItem     ShopItem?    @relation(fields: [shopItemId], references: [id])
+  spinResultId String?      @unique
+  spinResult   SpinResult?  @relation(fields: [spinResultId], references: [id])
+  prizeName    String?
+  pointsCost   Int
+  status       RedeemStatus @default(PENDING)
+  adminNote    String?
+  usedAt       DateTime?
+  usedOrderId  String?
+  expiresAt    DateTime?
+
+  coupon Coupon?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("redeem_orders")
+}
+
+enum RedeemStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+// ==================== 优惠券 ====================
+model Coupon {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  redeemOrderId String       @unique
+  redeemOrder   RedeemOrder  @relation(fields: [redeemOrderId], references: [id])
+  discountAmt   Decimal      @db.Decimal(10, 2)
+  status        CouponStatus @default(UNUSED)
+  expiresAt     DateTime
+  usedAt        DateTime?
+
+  @@index([userId])
+  @@map("coupons")
+}
+
+enum CouponStatus {
+  UNUSED
+  USED
+  EXPIRED
+}
+
+// ==================== 通知日志 ====================
+model Notification {
+  id        String        @id @default(cuid())
+  orderId   String
+  order     Order         @relation(fields: [orderId], references: [id])
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id])
+  channel   NotifyChannel
+  type      NotifyType
+  status    NotifyStatus
+  error     String?
+  createdAt DateTime      @default(now())
+
+  @@index([orderId])
+  @@map("notifications")
+}
+
+enum NotifyChannel {
+  SERVERCHAN
+  WECOM
+}
+
+enum NotifyType {
+  NEW_ORDER
+  STATUS_CHANGE
+}
+
+enum NotifyStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+// ==================== 商品 ====================
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  imageUrl    String?
+  price       Decimal  @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  productOrders ProductOrder[]
+
+  @@map("products")
+}
+
+// ==================== 商品订单 ====================
+enum ProductOrderStatus {
+  CREATED
+  PAID
+  COMPLETED
+  CANCELLED
+}
+
+model ProductOrder {
+  id             String             @id @default(cuid())
+  orderNo        String             @unique
+  userId         String
+  user           User               @relation(fields: [userId], references: [id])
+  productId      String
+  product        Product            @relation(fields: [productId], references: [id])
+  couponId       String?
+  coupon         PromoCoupon?       @relation(fields: [couponId], references: [id])
+  originalPrice  Decimal            @db.Decimal(10, 2)
+  discountAmount Decimal            @db.Decimal(10, 2) @default(0)
+  paidPrice      Decimal            @db.Decimal(10, 2)
+  status         ProductOrderStatus @default(CREATED)
+  cancelReason   String?
+  userNote       String?            @db.Text
+  paidAt         DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  adminNotifications AdminNotification[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("product_orders")
+}
+
+// ==================== 促销优惠码 ====================
+enum DiscountType {
+  FIXED
+  PERCENTAGE
+}
+
+model PromoCoupon {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  discountType  DiscountType
+  discountValue Decimal      @db.Decimal(10, 2)
+  validFrom     DateTime
+  validTo       DateTime
+  maxUses       Int          @default(1)
+  usedCount     Int          @default(0)
+  version       Int          @default(0)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+
+  productOrders ProductOrder[]
+
+  @@map("promo_coupons")
+}
+
+// ==================== 收款码配置 ====================
+model PaymentConfig {
+  id        String   @id @default("singleton")
+  wechatUrl String?
+  alipayUrl String?
+  updatedAt DateTime @updatedAt
+
+  @@map("payment_config")
+}
+
+// ==================== 管理员站内通知 ====================
+enum AdminNotifyType {
+  ORDER_PAID
+  ORDER_CANCELLED
+}
+
+model AdminNotification {
+  id        String          @id @default(cuid())
+  type      AdminNotifyType
+  summary   String
+  orderId   String?
+  order     ProductOrder?   @relation(fields: [orderId], references: [id])
+  isRead    Boolean         @default(false)
+  createdAt DateTime        @default(now())
+
+  @@index([isRead, createdAt])
+  @@map("admin_notifications")
+}
+
+// ==================== 转盘奖品配置 ====================
+model WheelPrize {
+  id          String   @id @default(cuid())
+  label       String
+  type        PrizeType
+  value       Decimal? @db.Decimal(10, 2)
+  weight      Int      @default(1)
+  totalStock  Int      @default(-1)
+  remainStock Int      @default(-1)
+  color       String   @default("#2D3748")
+  icon        String   @default("🎯")
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  spinResults SpinResult[]
+
+  @@map("wheel_prizes")
+}
+
+enum PrizeType {
+  CASH_REDEEM
+  ORDER_DISCOUNT
+  NONE
+}
+
+// ==================== 用户抽奖记录 ====================
+model SpinResult {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  prizeId     String
+  prize       WheelPrize   @relation(fields: [prizeId], references: [id])
+  spinRound   Int
+  redeemCode  String?
+  isRedeemed  Boolean      @default(false)
+  redeemOrder RedeemOrder?
+
+  createdAt   DateTime     @default(now())
+
+  @@unique([userId, spinRound])
+  @@unique([redeemCode])
+  @@index([userId])
+  @@map("spin_results")
+}
+
+// ==================== 活动浮窗配置 ====================
+model ActivityPopup {
+  id            String   @id @default("singleton")
+  enabled       Boolean  @default(false)
+  title         String   @default("🎰 幸运转盘 限时活动")
+  description   String   @default("新用户注册送1次抽奖机会")
+  buttonText    String   @default("✨ 立即抽奖 ✨")
+  linkUrl       String   @default("/lucky-wheel")
+  imageUrl      String?
+  showCondition String   @default("all")
+
+  updatedAt     DateTime @updatedAt
+
+  @@map("activity_popup")
+}
+
+// ==================== 毕设进度查询（整合自「毕业设计进度与活动查询」） ====================
+model ThesisProject {
+  id          Int             @id @default(autoincrement())
+  title       String          @unique
+  uniqueCode  String          @unique
+  studentName String
+  studentNo   String?
+  advisor     String?
+  major       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  progresses  ThesisProgress[]
+
+  @@map("thesis_projects")
+}
+
+model ThesisProgress {
+  id        Int                  @id @default(autoincrement())
+  projectId Int
+  project   ThesisProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  percent   Int
+  content   String?
+  createdAt DateTime             @default(now())
+  images    ThesisProgressImage[]
+
+  @@map("thesis_progresses")
+}
+
+model ThesisProgressImage {
+  id         Int            @id @default(autoincrement())
+  progressId Int
+  progress   ThesisProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  filename   String
+  url        String
+  createdAt  DateTime       @default(now())
+
+  @@map("thesis_progress_images")
+}
+
+model ThesisActivity {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("thesis_activities")
+}
+
+model SiteNotice {
+  id        Int      @id @default(autoincrement())
+  text      String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@map("site_notices")
+}

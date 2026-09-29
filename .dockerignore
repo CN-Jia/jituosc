@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+backend/dist/
+frontend/dist/
+admin/dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Spec-Kit
+.specify/
+.claude/
+
+# Tests & Coverage
+coverage/
+backend/tests/
+backend/coverage/
+
+# Logs
+*.log
+logs/
+/var/log/
+
+# PM2
+ecosystem.config.js
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (local dev only)
+uploads/
+backend/uploads/
+
+# Backups
+/var/backups/
+deploy/backup.sh
+deploy/certbot/
+deploy/Typora_Hook_Log.txt
+
+# Docs (not needed at runtime)
+specs/
+README.md

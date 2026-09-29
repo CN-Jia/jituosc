@@ -1,0 +1,26 @@
+{
+  "name": "jituo-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/dompurify": "^3.2.0",
+    "axios": "^1.7.7",
+    "dompurify": "^3.4.1",
+    "marked": "^18.0.2",
+    "pinia": "^2.2.4",
+    "vue": "^3.5.11",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.0",
+    "vue-tsc": "^2.1.6"
+  }
+}

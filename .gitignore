@@ -1,0 +1,28 @@
+# ── 依赖 ──────────────────────────────────────────────
+node_modules/
+
+# ── 构建产物 ──────────────────────────────────────────
+dist/
+backend/dist/
+frontend/dist/
+admin/dist/
+coverage/
+
+# ── 环境变量（切勿提交）────────────────────────────────
+.env
+*.env.local
+
+# ── 日志 ──────────────────────────────────────────────
+*.log
+Typora_Hook_Log.txt
+
+# ── 运行时上传的文件（不入库，生产中由 volume / OSS 承担）──
+backend/uploads/
+uploads/
+
+# ── 编辑器 / 本地个人设置 ──────────────────────────────
+.DS_Store
+Thumbs.db
+.claude/settings.local.json
+
+# 注意：backend/prisma/migrations/ 必须提交，切勿忽略

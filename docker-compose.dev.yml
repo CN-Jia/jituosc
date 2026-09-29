@@ -1,0 +1,55 @@
+# 极拓空间 本地开发环境
+# 用法: docker compose -f docker-compose.dev.yml up
+#
+# 仅启动 backend + postgres。
+# 用户端和管理端用 pnpm dev（Vite HMR），不需要容器。
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jituo-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: jituo
+      POSTGRES_PASSWORD: jituo_dev
+      POSTGRES_DB: jituo_dev
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jituo -d jituo_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: build   # 用 build 阶段（含 tsx），方便热重载
+    container_name: jituo-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/backend/src:ro
+      - ./backend/prisma:/app/backend/prisma:ro
+      - ./backend/uploads:/app/backend/uploads
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://jituo:jituo_dev@postgres:5432/jituo_dev
+      JWT_SECRET: dev-jwt-secret-key-at-least-16-chars
+      JWT_EXPIRES_IN: 7d
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD_HASH: $2b$10$PLACEHOLDER
+      ADMIN_WECHAT_ID: Jt--04
+      APP_BASE_URL: http://localhost:3000
+    command: ["npx", "tsx", "watch", "backend/src/app.ts"]
+
+volumes:
+  pgdata_dev:

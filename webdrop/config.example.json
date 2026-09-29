@@ -1,0 +1,12 @@
+{
+  "port": 3010,
+  "password": "在这里填你的登录密码",
+  "secret": "改成随机字符串: openssl rand -hex 24",
+  "dataDir": "data",
+  "chunkDir": "chunks",
+  "cookiePath": "/files",
+  "maxFileMB": 2048,
+  "maxChunkMB": 64,
+  "chunkTTLHours": 24,
+  "sessionDays": 30
+}

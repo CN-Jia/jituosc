@@ -1,0 +1,66 @@
+# 极拓空间 生产部署
+#
+# 用法:
+#   方案 A（拉取预构建镜像，CD 自动部署）:
+#     docker compose -f docker-compose.prod.yml pull
+#     docker compose -f docker-compose.prod.yml up -d
+#
+#   方案 B（服务器本地构建）:
+#     docker compose -f docker-compose.prod.yml build
+#     docker compose -f docker-compose.prod.yml up -d
+#
+# PostgreSQL 跑在宿主机（不在此文件管理），容器通过 host 网络连接。
+# 前置条件：
+#   1. 宿主机 PostgreSQL 监听 127.0.0.1:5432（默认）
+#   2. 后端 .env 中 DATABASE_URL 指向宿主机 PG
+#   3. 停掉占端口的 PM2 和宿主机 Nginx
+
+services:
+  backend:
+    image: ghcr.io/cn-jia/jituo-backend:latest
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: jituo-backend
+    restart: always
+    mem_limit: 256M
+    mem_reservation: 128M
+    ports:
+      - "127.0.0.1:3000:3000"    # 仅本地回环暴露，由 nginx 转发
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 连宿主机 PG
+    volumes:
+      - ./backend/uploads:/app/backend/uploads  # 上传文件持久化
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  nginx:
+    image: ghcr.io/cn-jia/jituo-nginx:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: jituo-nginx
+    restart: always
+    mem_limit: 64M
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    volumes:
+      # SSL 证书（Certbot 续期后重载 nginx: docker compose exec nginx nginx -s reload）
+      - ./deploy/certbot/www:/var/www/certbot:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
