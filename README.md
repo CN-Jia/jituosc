@@ -14,7 +14,7 @@
 | 管理端 | Vue 3 + Element Plus + ECharts |
 | 后端 | Node.js + Fastify + TypeScript + Zod |
 | 数据库 | PostgreSQL + Prisma ORM（25 个模型） |
-| 部署 | PM2 + Nginx / Docker |
+| 部署 | Docker Compose + Nginx（生产）· PM2 + 宿主机 Nginx（备用）· GitHub Actions + GHCR（CI/CD） |
 
 ## 架构说明
 
@@ -131,17 +131,42 @@ pnpm --filter jituo-frontend dev          # 用户端 → http://localhost:5175
 pnpm --filter admin dev                   # 管理端 → http://localhost:5174
 ```
 
-### 构建 & 部署
+### 部署
+
+两条部署路径，**生产环境使用 Docker Compose**；PM2 是项目早期方案，降级为「不使用容器时的备用方案」保留。
+
+| 方式 | 定位 | 说明 |
+|---|---|---|
+| **Docker Compose** | 生产（推荐） | Nginx 与 Backend 均以容器运行，镜像由 GitHub Actions 构建并推送到 GHCR |
+| **PM2 + 宿主机 Nginx** | 备用 | 传统 Node.js 部署，不使用容器时采用；完整步骤见 [`deploy/DEPLOY.md`](deploy/DEPLOY.md) |
+
+> ⚠️ 两套方式都会占用 **80 / 443 / 3000** 端口，**同时只能启用一套**。切换前先停掉另一套：
+> `docker compose -f docker-compose.prod.yml down` 或 `pm2 delete jituo-api`。
+
+#### 生产：Docker Compose
+
+CD 流程（[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)）：
+推送 tag（`v*`）或手动触发 → **测试门禁** → 构建 backend / nginx 镜像并推 GHCR → SSH 到服务器拉取并重启 → `prisma migrate deploy` → 健康检查。
+
+日常提交到 `master` 只跑 CI（测试 + 类型检查），不会触碰生产。
+
+服务器上手动执行等价于：
 
 ```bash
-pnpm build:backend                        # tsc → backend/dist/
-pnpm build:admin                          # vite build → admin/dist/
+cd /var/www/jituo
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
+docker compose -f docker-compose.prod.yml exec -T backend \
+  pnpm --filter backend exec prisma migrate deploy   # 在容器内用 workspace 执行，才能命中 backend/prisma
+```
 
-# 生产（推荐）：Docker Compose
-docker compose -f docker-compose.prod.yml up -d
+#### 备用：PM2 + 宿主机 Nginx
 
-# 备用：PM2 + 宿主机 Nginx（两套方式都会占用 80/3000，不要同时启用）
-pm2 start deploy/ecosystem.config.js --env production
+```bash
+pnpm install && pnpm build:backend         # PM2 的 script 指向 backend/dist/app.js
+pm2 start deploy/ecosystem.config.js --env production   # env_production 必须带 --env
+pm2 save
+sudo nginx -t && sudo systemctl reload nginx            # 配置见 deploy/nginx/jituo.conf
 ```
 
 ---

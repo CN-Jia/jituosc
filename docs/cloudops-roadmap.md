@@ -153,6 +153,19 @@
 
 **仍未做（属 P1-6）**：图片仍存本地磁盘，未接 OSS。`ali-oss` 依赖已在 `backend/package.json`，接入点就是 `saveImageUpload()`；生产卷路径已在 P0-5 对齐。
 
+### 已完成修复记录（P0-2 Compose / PM2 定位）
+
+| 位置 | 改动 |
+|---|---|
+| `docker-compose.prod.yml` | 文件头声明为「生产环境唯一部署入口」，并注明 PM2 已降级为备用方案 |
+| `deploy/ecosystem.config.js` | 补定位注释：**备用方案**＋使用前提（需先 `pnpm build:backend`、先停 Docker 方案）＋启动/停止命令，含 `env_production` 必须带 `--env production` 这个易错点 |
+| `deploy/DEPLOY.md` | 顶部加醒目横幅：本文档是**备用方案**，生产用 Docker Compose，并给出互斥切换命令 |
+| `README.md` | 部署章节拆为「生产：Docker Compose」/「备用：PM2 + 宿主机 Nginx」两节，补 CD 流程说明；技术栈表同步更新 |
+
+四处统一强调的冲突点：**两套方式都占用 80 / 443 / 3000 端口，同时只能启用一套**，并给出互斥命令（`docker compose -f docker-compose.prod.yml down` / `pm2 delete jituo-api`）。
+
+验证：`node --check deploy/ecosystem.config.js` 通过，且 `require()` 后关键字段不变（name / script / instances / exec_mode / env_production）；两个 compose 文件仍能被 YAML 解析器解析。**PM2 本身未实测**（本机未安装 pm2）。
+
 ---
 
 ## 1. 最终形态
@@ -220,7 +233,7 @@
 
 ---
 
-### ☐ P0-2 明确 Docker Compose 是生产主链路，PM2 定位为传统/备用方案
+### ✅ P0-2 明确 Docker Compose 是生产主链路，PM2 定位为传统/备用方案（已完成）
 
 **做法**：
 

@@ -1,4 +1,13 @@
-# 极拓空间 生产部署文档
+# 极拓空间 部署文档（PM2 + 宿主机 Nginx —— 备用方案）
+
+> ## ⚠️ 本文档是**备用部署方案**
+>
+> 生产环境当前使用 **Docker Compose**（见 [`docker-compose.prod.yml`](../docker-compose.prod.yml)，
+> 由 [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) 自动执行）。
+>
+> 本文档描述的是**不使用容器**时的传统部署路径：宿主机 Nginx + PM2 + 宿主机 PostgreSQL。
+> 两套方式都会占用 **80 / 443 / 3000** 端口，**同时只能启用一套**：切换前请先
+> `docker compose -f docker-compose.prod.yml down`（或 `pm2 delete jituo-api`）。
 
 **目标系统**：Ubuntu 24.04 LTS  
 **架构**：Nginx（反向代理 + 静态文件）+ PM2（Node.js 守护）+ PostgreSQL 16  
