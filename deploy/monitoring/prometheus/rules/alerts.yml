@@ -1,0 +1,82 @@
+# 告警规则（极拓空间）
+#
+# 只定义规则；发送通知需要另配 Alertmanager（可按需再加）。
+# 在 Prometheus 的 Alerts / Rules 页面即可看到触发状态。
+
+groups:
+  # ── 应用 ───────────────────────────────────────────────────
+  - name: jituo-backend
+    rules:
+      - alert: JituoBackendDown
+        expr: up{job="jituo-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: '后端不可达（{{ $labels.instance }}）'
+          description: 'Prometheus 连续 2 分钟抓不到 /metrics，服务可能已挂或端口未监听。'
+
+      - alert: JituoHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '5xx 占比超过 5%'
+          description: '近 5 分钟服务端错误比例偏高，检查应用日志与数据库连接。'
+
+      - alert: JituoHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'P95 响应时间超过 1s'
+          description: '可能存在慢查询或资源瓶颈，结合 node 指标一起看。'
+
+      - alert: JituoEventLoopLagHigh
+        expr: nodejs_eventloop_lag_seconds > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Event Loop 延迟超过 0.5s'
+          description: '有同步阻塞操作或 CPU 竞争，检查是否出现长耗时同步逻辑。'
+
+  # ── 宿主机 ─────────────────────────────────────────────────
+  - name: host
+    rules:
+      - alert: HostDiskUsageHigh
+        expr: |
+          (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint="/"}
+             / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs",mountpoint="/"}) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '根分区使用率超过 85%'
+          description: '磁盘将满会影响日志、备份与数据库；优先清理旧镜像与旧备份。'
+
+      - alert: HostMemoryUsageHigh
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '内存使用率超过 90%'
+          description: '可能导致 OOM Kill；检查容器内存限制与是否有内存泄漏。'
+
+      - alert: HostLoadHigh
+        expr: node_load5 / count without (cpu, mode) (node_cpu_seconds_total{mode="idle"}) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '5 分钟负载持续高于 CPU 核数的 2 倍'
+          description: '结合 CPU 与请求延迟判断是流量上涨还是被慢任务拖住。'

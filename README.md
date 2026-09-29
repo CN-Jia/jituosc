@@ -47,7 +47,7 @@
 | 数据 | PostgreSQL 16 · Prisma ORM（30 个模型，含迁移文件） |
 | 部署 | Docker Compose · Nginx（HTTPS/反代）· PM2（备用方案） |
 | CI/CD | GitHub Actions · GHCR（GitHub Container Registry） |
-| 可观测 | `/health` 健康检查 · 管理端监控大屏（消费 Prometheus 指标） |
+| 可观测 | 后端 `/metrics`（prom-client）· Prometheus + Grafana + node_exporter（配置纳管，见 `deploy/monitoring/`）· `/health` 健康检查 |
 
 ## 系统架构
 
@@ -150,7 +150,8 @@ jituosc/
 │   ├── ecosystem.config.js       # PM2 配置（备用方案）
 │   ├── backup.sh                 # PostgreSQL 备份脚本
 │   ├── nginx-docker.conf         # 容器内 Nginx
-│   └── nginx/jituo.conf          # 宿主机 Nginx（备用方案）
+│   ├── nginx/jituo.conf          # 宿主机 Nginx（备用方案）
+│   └── monitoring/               # 监控栈（Prometheus / Grafana / node_exporter，配置与仪表盘纳管）
 ├── docs/cloudops-roadmap.md      # 部署与运维改造路线图（含已完成的整改记录）
 ├── .github/workflows/            # ci.yml（测试/类型检查）、deploy.yml（构建部署）
 ├── docker-compose.prod.yml       # ★ 生产部署入口
@@ -264,8 +265,29 @@ sudo nginx -t && sudo systemctl reload nginx            # 配置见 deploy/nginx
 
 ### 监控
 
-- 管理端**监控大屏**：订单统计 + 宿主机资源，指标经 Prometheus HTTP API 查询（`PROMETHEUS_URL`），覆盖 CPU、内存、磁盘、负载、网络、连接数等 `node_exporter` 指标，并支持 24h / 7 天时序；Prometheus 不可用时回落到 `node:os` 实时数据
-- 后端**尚未暴露 `/metrics`**（无 prom-client），监控栈的部署清单也尚未纳入本仓库 —— 见 [后续计划](#已知不足与后续计划)
+**应用指标**：后端 `/metrics` 暴露 Prometheus 格式指标（prom-client）
+
+| 指标 | 用途 |
+|---|---|
+| `http_requests_total{method,route,status}` | 请求量、状态码分布；**按路由模板聚合**，避免随机 URL 打爆标签基数（未匹配记为 `unmatched`） |
+| `http_request_duration_seconds{...}` | 响应时间直方图 → P95 / P99 |
+| `http_requests_in_flight` | 正在处理的请求数 |
+| `process_*` / `nodejs_*` | Node 进程 CPU、内存、Event Loop 延迟、GC、句柄数 |
+
+`/metrics` 不对外暴露：后端端口只绑 `127.0.0.1`，且 Nginx 对该路径显式返回 404。
+
+**监控栈**（`deploy/monitoring/`，配置与仪表盘全部纳入版本管理）
+
+```
+Prometheus（抓 127.0.0.1:3000/metrics 与 127.0.0.1:9100）
+   └── Grafana：仪表盘「极拓空间 · 总览」（QPS、5xx 占比、P95/P99、进程内存、Event Loop、宿主机资源、抓取状态）
+   └── node_exporter：宿主机 CPU / 内存 / 磁盘 / 网络 / 负载
+   └── 告警规则：后端掉线、5xx>5%、P95>1s、Event Loop>0.5s、磁盘>85%、内存>90%、负载过高
+```
+
+一键启动与面板说明见 [`deploy/monitoring/README.md`](deploy/monitoring/README.md)（含为什么 Prometheus 用 host 网络的取舍说明）。
+
+**管理端监控大屏**：订单统计 + 宿主机资源，经 Prometheus HTTP API（`PROMETHEUS_URL`）查询，支持 24h / 7 天时序；Prometheus 不可用时回落到 `node:os` 实时数据。
 
 ### 日志与资源限制
 
@@ -298,7 +320,7 @@ sudo nginx -t && sudo systemctl reload nginx            # 配置见 deploy/nginx
 ## 测试
 
 ```bash
-pnpm test                        # 全部测试（48 个）
+pnpm test                        # 全部测试（55 个）
 pnpm test:coverage               # 含覆盖率
 ```
 
@@ -308,6 +330,7 @@ pnpm test:coverage               # 含覆盖率
 | `tests/unit/thesis.test.ts` | thesis DTO 边界、VO 裁剪（含「公开视图不泄露验证码」） |
 | `tests/unit/image-upload.test.ts` | 魔数嗅探、伪装文件拒绝、大小限制、展示名清理 |
 | `tests/integration/thesis-upload.test.ts` | 上传接口全链路（`app.inject` + mock Prisma，无需数据库） |
+| `tests/integration/metrics.test.ts` | `/metrics` 指标采集、路由标签基数受控、抓取自身不计入 |
 
 ## 分支策略与 CI/CD
 
@@ -328,7 +351,7 @@ git tag v1.0.0 && git push origin v1.0.0
 
 - **分层推进中**：`forum` / `content` / `marketing` 仍是路由层直连 Prisma；`system` / `points` / `product` 缺 repository 层
 - **备份未闭环**：`backup.sh` 只备份到本机，未上传 OSS（同一台机器磁盘损坏即同时丢失），也还没有 `restore.sh` 与恢复演练
-- **监控栈未纳管**：后端无 `/metrics`，Prometheus / node_exporter / Grafana 的部署清单不在仓库里（目前仅消费已有指标）
+- **告警未通知**：Prometheus 规则已定义，但未接 Alertmanager，触发后不会主动推送
 - **图片存本地盘**：未接对象存储（`ali-oss` 依赖已在，接入点是 `saveImageUpload()`）
 - **数据库跑在宿主机**：未容器化，跨机迁移需手工处理
 - **未使用 Redis**：当前业务没有必须的缓存/会话/限流场景，不做无业务支撑的技术堆砌

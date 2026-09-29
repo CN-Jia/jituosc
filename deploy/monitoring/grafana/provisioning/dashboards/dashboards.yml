@@ -1,0 +1,14 @@
+apiVersion: 1
+
+# 仪表盘以文件形式纳管：容器启动即加载 /var/lib/grafana/dashboards 下的 JSON
+providers:
+  - name: jituo
+    orgId: 1
+    folder: '极拓空间'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

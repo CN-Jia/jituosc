@@ -1,0 +1,14 @@
+apiVersion: 1
+
+# 数据源由 provision 自动注入，仪表盘可直接引用固定 uid: prometheus
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    # Grafana 跑在桥接网络，Prometheus 在 host 网络，因此经 host.docker.internal 访问
+    url: http://host.docker.internal:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST

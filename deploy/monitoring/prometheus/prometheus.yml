@@ -1,0 +1,36 @@
+# Prometheus 抓取配置（极拓空间）
+#
+# Prometheus 使用 host 网络，因此 127.0.0.1 就是宿主机回环：
+#   - 后端 /metrics 监听 127.0.0.1:3000（只绑回环，不对外）
+#   - node_exporter 监听 127.0.0.1:9100
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    env: production
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # 应用自身指标：请求量、响应时间、5xx、Node 进程状态（CPU/内存/Event Loop/GC）
+  - job_name: jituo-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['127.0.0.1:3000']
+        labels:
+          service: jituo-backend
+
+  # 宿主机指标：CPU、内存、磁盘、网络、负载、文件系统
+  - job_name: node
+    static_configs:
+      - targets: ['127.0.0.1:9100']
+        labels:
+          service: host
+
+  # Prometheus 自身的抓取健康度
+  - job_name: prometheus
+    static_configs:
+      - targets: ['127.0.0.1:9090']

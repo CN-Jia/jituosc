@@ -1,0 +1,84 @@
+# 极拓空间 监控栈：Prometheus + Grafana + node_exporter
+#
+# 与主应用分开管理，可独立启停：
+#   cd deploy/monitoring
+#   echo "GRAFANA_ADMIN_PASSWORD=<换成一个强密码>" > .env
+#   docker compose -f docker-compose.monitoring.yml up -d
+#
+# 网络说明（重要）：
+#   Prometheus 与 node_exporter 使用 host 网络。这样能直接抓
+#     127.0.0.1:3000  后端 /metrics（后端只绑回环，容器桥接网络抓不到）
+#     127.0.0.1:9100  node_exporter
+#   无论后端是 Docker Compose 还是 PM2 部署都能抓到，两种部署路径通用。
+#   Grafana 用桥接网络、仅监听 127.0.0.1，通过 host.docker.internal 访问 Prometheus。
+#
+# 端口：Prometheus 127.0.0.1:9090、node_exporter 127.0.0.1:9100、Grafana 127.0.0.1:3001
+# 三者都只绑回环，不对公网暴露；Grafana 需要访问时用 SSH 隧道：
+#   ssh -L 3001:127.0.0.1:3001 <user>@<server>   然后本地打开 http://localhost:3001
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    container_name: jituo-prometheus
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.listen-address=127.0.0.1:9090'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  node_exporter:
+    image: prom/node-exporter:v1.12.1
+    container_name: jituo-node-exporter
+    restart: unless-stopped
+    network_mode: host
+    # 采集宿主机指标需要看到宿主机的进程与根文件系统
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    command:
+      - '--path.rootfs=/host'
+      - '--web.listen-address=127.0.0.1:9100'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    container_name: jituo-grafana
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3001:3000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'   # 用于访问 host 网络里的 Prometheus
+    environment:
+      # 不设默认弱密码：未提供该变量时 compose 直接报错
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?请在 deploy/monitoring/.env 中设置 GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  prometheus_data:
+  grafana_data:

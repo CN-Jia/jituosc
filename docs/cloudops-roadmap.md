@@ -190,6 +190,45 @@ README 按路线图要求重写为 12 节（含锚点目录）：项目简介 / 
 
 **验证**：`node "$env:TEMP\yamlcheck\check.js"` 校验两个 workflow 仍可解析；实测后端返回体为 `{"ok":true,...}`（会被新检查判定为健康），而 SPA 回退的 HTML 不会被误判（判定为不健康）；根目录 `pnpm db:generate` 等新脚本可执行。
 
+### 已完成修复记录（P1-2 / P1-3 / P1-4 监控）
+
+**后端指标**：新增 `backend/src/plugins/metrics.ts`（prom-client 15.1.3）
+
+| 指标 | 说明 |
+|---|---|
+| `http_requests_total{method,route,status}` | 请求量、状态码分布 |
+| `http_request_duration_seconds{...}` | 响应时间直方图（桶 5ms–5s），可算 P95/P99 |
+| `http_requests_in_flight` | 正在处理的请求数 |
+| prom-client 默认指标 | `process_*` / `nodejs_*`：CPU、内存、Event Loop 延迟、GC、句柄数 |
+
+- **标签基数防护**：标签用**路由模板**而非真实 URL；未匹配路由统一记 `unmatched`；`/metrics` 自身不计入业务指标（避免自噪声）
+- **不对外暴露**：后端端口只绑 `127.0.0.1`，且两套 Nginx 配置都加了 `location = /metrics { return 404; }`
+
+**监控栈纳入版本管理**：新增 `deploy/monitoring/`
+
+| 文件 | 内容 |
+|---|---|
+| `docker-compose.monitoring.yml` | Prometheus v3.15.0 + node_exporter v1.12.1（host 网络）+ Grafana 13.2.3（桥接，仅 `127.0.0.1:3001`，密码必填无默认弱口令） |
+| `prometheus/prometheus.yml` | 3 个抓取任务：后端 `/metrics`、node_exporter、Prometheus 自身；保留 15 天 |
+| `prometheus/rules/alerts.yml` | 7 条规则：后端掉线、5xx>5%、P95>1s、Event Loop>0.5s、磁盘>85%、内存>90%、负载过高 |
+| `grafana/provisioning/*` | 数据源（固定 `uid=prometheus`）+ 仪表盘 provider |
+| `grafana/dashboards/jituo-overview.json` | 7 个面板：QPS、5xx 占比、P95/P99、进程内存、Event Loop、宿主机资源、抓取状态 |
+| `README.md` | 启动方式、SSH 隧道访问、以及 host 网络取舍的说明 |
+
+**镜像版本是查出来的，不是凭记忆写的**：本机 Docker Hub API 不可达，改用 GitHub Releases API 取到真实最新稳定版（Prometheus v3.15.0 / Grafana v13.2.3 / node_exporter v1.12.1）再写进 compose，避免 `docker compose pull` 因 tag 不存在而失败。
+
+**为什么 Prometheus 用 host 网络（取舍）**：后端只监听 `127.0.0.1:3000`，桥接网络内的容器抓不到；若抓 `host.docker.internal`，它解析到网关地址（如 172.17.0.1），回环上监听的端口依然不可达。因此让 Prometheus / node_exporter 用 host 网络直接抓 `127.0.0.1` —— 无论后端是 Docker Compose 还是 PM2 部署都能工作。代价是这两个容器与宿主机共享网络命名空间（它们只监听回环端口，风险可控）。
+
+**验证**
+
+| 项 | 结果 |
+|---|---|
+| 测试 | **55 passed**（新增 `tests/integration/metrics.test.ts` 7 例：指标家族存在、路由模板聚合、未匹配记 `unmatched` 且响应体中不含原始 URL、抓取自身不计入） |
+| 真实抓取 `GET /metrics` | `200` + `text/plain; version=0.0.4`，**11883 字节 / 30 个 metric family** |
+| 实测样本 | `http_requests_total{method="GET",route="/health",status="200"} 6`、`{route="unmatched",status="404"} 1`、`process_resident_memory_bytes 105893888`、`nodejs_eventloop_lag_seconds 0`、`nodejs_heap_size_used_bytes 27158744` |
+| 配置校验 | 9 个 YAML（监控栈 5 + compose 2 + workflow 2）全部解析通过；Grafana 仪表盘 JSON 有效（7 面板、id 唯一、数据源引用统一） |
+| **未验证** | 本机 Docker 守护进程未运行、也无法访问 Docker Hub → **镜像拉取与 Prometheus/Grafana 实际运行未验证**；PromQL 未经 `promtool` 校验 |
+
 ---
 
 ## 1. 最终形态
@@ -418,7 +457,7 @@ README 是这个项目给 HR / 技术面的第一入口，**结构比内容更�
 
 ---
 
-### ☐ P1-2 / P1-3 Prometheus + Grafana（后端指标）
+### ✅ P1-2 / P1-3 Prometheus + Grafana（后端指标）（已完成）
 
 **架构**：
 
@@ -441,7 +480,7 @@ Grafana ──查询──► Prometheus ──抓取──► Node Backend /met
 
 ---
 
-### ☐ P1-4 node_exporter（宿主机监控）
+### ✅ P1-4 node_exporter（宿主机监控）（已完成）
 
 **做法**：服务器部署 `node_exporter`（systemd 或容器），Prometheus 增加一个 scrape job，Grafana 导入 Node Exporter 官方面板。
 
