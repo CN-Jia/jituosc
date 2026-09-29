@@ -7,6 +7,7 @@ import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { prisma } from '../../lib/prisma.js'
 import { verifyAdmin } from '../../middlewares/auth.middleware.js'
+import { resolveUploadDir, toUploadUrl } from '../../shared/storage/paths.js'
 import { generateUniqueCode } from './thesis.service.js'
 
 export async function adminThesisRoutes(fastify: FastifyInstance) {
@@ -111,12 +112,13 @@ export async function adminThesisRoutes(fastify: FastifyInstance) {
     if (!data) return reply.code(400).send({ message: '未上传文件' })
     const ext = path.extname(data.filename) || '.png'
     const name = nanoid(12) + ext
-    const uploadDir = path.join(process.cwd(), 'uploads')
+    // 与静态服务共用同一目录解析逻辑，避免"写在这里、URL 指向那里"的静默 404
+    const uploadDir = resolveUploadDir()
     fs.mkdirSync(uploadDir, { recursive: true })
     const writeStream = fs.createWriteStream(path.join(uploadDir, name))
     await pipeline(data.file, writeStream)
     const image = await prisma.thesisProgressImage.create({
-      data: { progressId: Number(params.id), filename: data.filename, url: '/uploads/' + name },
+      data: { progressId: Number(params.id), filename: data.filename, url: toUploadUrl(name) },
     })
     return { image }
   })

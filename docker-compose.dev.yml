@@ -42,6 +42,8 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
+      # 同上：与卷挂载路径保持一致（容器 cwd 是 /app，默认 'uploads' 会落到 /app/uploads）
+      UPLOAD_DIR: /app/backend/uploads
       DATABASE_URL: postgresql://jituo:jituo_dev@postgres:5432/jituo_dev
       JWT_SECRET: dev-jwt-secret-key-at-least-16-chars
       JWT_EXPIRES_IN: 7d

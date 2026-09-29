@@ -32,6 +32,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      # 上传目录必须与下面的卷挂载路径一致。
+      # 容器 WORKDIR 是 /app（ENTRYPOINT 为 node backend/dist/app.js），
+      # 若用默认值 'uploads' 会解析成 /app/uploads —— 落在卷之外，容器重建即丢失上传的图片。
+      UPLOAD_DIR: /app/backend/uploads
     extra_hosts:
       - "host.docker.internal:host-gateway"  # 连宿主机 PG
     volumes:

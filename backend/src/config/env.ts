@@ -23,6 +23,9 @@ const envSchema = z.object({
 
   APP_BASE_URL: z.string().default('http://localhost:3000'),
 
+  // 本地上传目录（相对路径按进程工作目录解析；容器内为 /app/backend/uploads）
+  UPLOAD_DIR: z.string().default('uploads'),
+
   // Prometheus（可选，监控面板用）
   PROMETHEUS_URL: z.string().default('http://localhost:9090'),
 })

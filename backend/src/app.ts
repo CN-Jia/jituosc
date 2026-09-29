@@ -8,6 +8,7 @@ import { logger } from './utils/logger.js'
 import jwtPlugin from './plugins/jwt.js'
 import corsPlugin from './plugins/cors.js'
 import multipartPlugin from './plugins/multipart.js'
+import staticPlugin from './plugins/static.js'
 
 // 模块路由（按业务域聚合：每个模块内 route → service → repository 分层）
 import { authRoutes } from './modules/system/system.routes.js'
@@ -41,6 +42,7 @@ export async function buildApp() {
   await app.register(corsPlugin)
   await app.register(jwtPlugin)
   await app.register(multipartPlugin)
+  await app.register(staticPlugin)   // /uploads/ 静态文件（上传的截图等）
 
   app.get('/health', async () => ({
     ok: true,

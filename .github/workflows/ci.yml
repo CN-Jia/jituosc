@@ -1,8 +1,12 @@
 name: CI
 
+# 触发策略：master 上的日常提交与 PR 都会跑测试和类型检查。
+# 本工作流只做校验，不接触生产环境；发布由 deploy.yml 负责（打 tag 或手动触发）。
 on:
+  push:
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:   # 手动触发
 
 jobs:
